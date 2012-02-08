@@ -191,7 +191,11 @@ struct float_u8 {
 
 typedef struct float_u8 FMETRIC_U8_T;
 
-
+#define MIN_USE_IID 0
+#define MAX_USE_IID 1
+#define DEF_USE_IID 1
+#define ARG_USE_IID "individualIdentifiers"
+extern int32_t iid_tables;
 
 
 #define MIN_TX_INTERVAL 35
@@ -735,11 +739,11 @@ struct task_node {
 struct tx_task_content {
 	struct dev_node *dev; // the outgoing interface to be used for transmitting
 	struct link_node *link;
-	uint32_t u32;
-	uint16_t u16;
-	IID_T myIID4x;
-	IID_T neighIID4x;
 	uint16_t type;
+	IID_T myIID4x;
+	uint16_t u16; // sqn, transmitterIID, problem_type, ...
+	uint32_t local_id;
+        struct description_hash dhash;
 };
 
 struct tx_task_node {
@@ -865,7 +869,7 @@ struct neigh_node {
 
 	IID_T neighIID4me;
 
-	struct iid_repos neighIID4x_repos;
+        struct iid_repos neighIID4x_repos;
 
 //	AGGREG_SQN_T ogm_aggregation_rcvd_set;
         TIME_T ogm_new_aggregation_rcvd;
@@ -976,15 +980,15 @@ struct ogm_aggreg_node {
 
 	struct list_node list;
 
-	struct msg_ogm_adv *ogm_advs;
+	struct msg_ogm_dhash_adv *ogm_dhash_advs;
+	struct msg_ogm_iid_adv *ogm_iid_advs;
 
 	uint8_t ogm_dest_field[(OGM_DEST_ARRAY_BIT_SIZE / 8)];
 //	int16_t ogm_dest_bit_max;
 	int16_t ogm_dest_bytes;
-
-	uint16_t aggregated_msgs;
-
-	AGGREG_SQN_T    sqn;
+	uint16_t ogm_msgs_bytes;
+//	uint16_t aggregated_msgs;
+        AGGREG_SQN_T sqn;
 	uint8_t  tx_attempt;
 };
 
@@ -1045,7 +1049,7 @@ void blacklist_neighbor(struct packet_buff *pb);
 
 IDM_T blacklisted_neighbor(struct packet_buff *pb, struct description_hash *dhash);
 
-struct neigh_node *is_described_neigh( struct link_node *link, IID_T transmittersIID4x );
+struct neigh_node *is_iid_or_dhash_of_transmitting_and_described_neigh(struct link_node *link, IID_T transmittersIID4x, struct description_hash *dhash);
 
 void purge_link_route_orig_nodes(struct dev_node *only_dev, IDM_T only_expired);
 void block_orig_node(IDM_T block, struct orig_node *on);
@@ -1054,7 +1058,7 @@ struct orig_node * init_orig_node(GLOBAL_ID_T *id);
 
 void purge_local_node(struct local_node *local);
 
-IDM_T update_local_neigh(struct packet_buff *pb, struct dhash_node *dhn);
+struct neigh_node * update_local_neigh(struct packet_buff *pb, struct dhash_node *dhn);
 void update_neigh_dhash(struct orig_node *on, struct description_hash *dhash);
 
 LOCAL_ID_T new_local_id(struct dev_node *dev);
@@ -1081,7 +1085,7 @@ void rx_packet( struct packet_buff *pb );
 /*
  * ASSERTION / PARANOIA ERROR CODES:
  * Negative numbers are used as SIGSEV error codes !
- * Currently used numbers are: -500000 -500001 ... -501340
+ * Currently used numbers are: -500000 -500001 ... -501402
  */
 
 //#define paranoia( code , problem ) do { if ( (problem) ) { cleanup_all( code ); } }while(0)

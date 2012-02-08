@@ -25,9 +25,8 @@
 #define IID_REPOS_SIZE_MAX  ((IID_T)(-1))
 #define IID_REPOS_SIZE_WARN 1024
 
-#define IID_RSVD_UNUSED 0
-#define IID_RSVD_MAX    0
-#define IID_MIN_USED    1
+#define IID_RSVD_UNUSED 0 // this iid value is reserved to indicate an unused iid variable
+#define IID_MIN_USABLE  1 // this is the minimum usable iid value to represent a valid reference to a dhn
 
 #define IID_SPREAD_FK   1  /*default=2 , 1 means no spreading    #define IID_REPOS_USAGE_WARNING 10 */
 
@@ -40,8 +39,13 @@ struct iid_ref {
 struct iid_repos {
 	IID_T arr_size; // the number of allocated array fields
 	IID_T min_free; // the first unused array field from the beginning of the array (might be outside of allocated space)
-	IID_T max_free; // the first unused array field after the last used field in the array (might be outside of allocated space)
+//	IID_T max_free; // the first unused array field after the last used field in the array (might be outside of allocated space)
+	IID_T max_used; // the last used field in the array
 	IID_T tot_used; // the total number of used fields in the array
+
+	IID_T neighIID4neigh;
+	uint16_t referred_by_neigh_timestamp_sec;
+
 	union {
 		uint8_t *u8;
 		IID_NODE_T **node;

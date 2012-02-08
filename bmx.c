@@ -45,6 +45,8 @@
 int32_t drop_all_frames = DEF_DROP_ALL_FRAMES;
 int32_t drop_all_packets = DEF_DROP_ALL_PACKETS;
 
+int32_t iid_tables = DEF_USE_IID;
+
 
 int32_t dad_to = DEF_DAD_TO;
 
@@ -146,16 +148,27 @@ IDM_T validate_param(int32_t probe, int32_t min, int32_t max, char *name)
 }
 
 
-struct neigh_node *is_described_neigh( struct link_node *link, IID_T transmittersIID4x )
+struct neigh_node *is_iid_or_dhash_of_transmitting_and_described_neigh(struct link_node *link, IID_T iid, struct description_hash *dhash)
 {
         assertion(-500730, (link));
         assertion(-500958, (link->local));
+
         struct neigh_node *neigh = link->local->neigh;
 
-        if (neigh && neigh->dhn && neigh->dhn->on &&
-                neigh->dhn == iid_get_node_by_neighIID4x(neigh, transmittersIID4x, YES/*verbose*/)) {
+        assertion(-500000, IMPLIES(neigh, neigh->dhn));
+        assertion(-500000, IMPLIES(neigh, neigh->dhn->on));
+        assertion(-500000, IMPLIES(neigh, neigh->dhn->neigh == neigh));
+
+        assertion(-500000, IMPLIES(iid_tables, iid >= IID_MIN_USABLE));
+        assertion(-500000, (iid >= IID_MIN_USABLE || dhash));
+
+        if (neigh && (
+                (iid >= IID_MIN_USABLE && neigh->dhn == iid_get_node_by_neighIID4x(neigh, iid, YES/*verbose*/)) ||
+                (dhash && memcmp(&neigh->dhn->dhash, dhash, sizeof (struct description_hash))))) {
 
                 assertion(-500938, (neigh->dhn->neigh == neigh));
+                assertion(-500000, IMPLIES(iid >= IID_MIN_USABLE, neigh->dhn == iid_get_node_by_neighIID4x(neigh, iid, YES/*verbose*/)));
+                assertion(-500000, IMPLIES(dhash, memcmp(&neigh->dhn->dhash, dhash, sizeof (struct description_hash))));
 
                 return neigh;
         }
@@ -181,7 +194,7 @@ struct dhash_node* create_dhash_node(struct description_hash *dhash, struct orig
         avl_insert(&dhash_tree, dhn, -300142);
 
         dhn->myIID4orig = iid_new_myIID4x(dhn);
-
+        dhn->referred_by_me_timestamp = bmx_time;
         on->updated_timestamp = bmx_time;
         dhn->on = on;
         on->dhn = dhn;
@@ -270,9 +283,9 @@ void invalidate_dhash_node( struct dhash_node *dhn )
         TRACE_FUNCTION_CALL;
 
         dbgf_track(DBGT_INFO,
-                "dhash %8X myIID4orig %d, my_iid_repository: used=%d, inactive=%d  min_free=%d  max_free=%d ",
+                "dhash %8X myIID4orig %d, my_iid_repository: used=%d, inactive=%d  min_free=%d  max_used=%d ",
                 dhn->dhash.h.u32[0], dhn->myIID4orig,
-                my_iid_repos.tot_used, dhash_invalid_tree.items+1, my_iid_repos.min_free, my_iid_repos.max_free);
+                my_iid_repos.tot_used, dhash_invalid_tree.items+1, my_iid_repos.min_free, my_iid_repos.max_used);
 
         assertion( -500698, (!dhn->on));
         assertion( -500699, (!dhn->neigh));
@@ -355,7 +368,7 @@ void create_neigh_node(struct local_node *local, struct dhash_node * dhn)
 
 
 
-IDM_T update_local_neigh(struct packet_buff *pb, struct dhash_node *dhn)
+struct neigh_node * update_local_neigh(struct packet_buff *pb, struct dhash_node *dhn)
 {
         TRACE_FUNCTION_CALL;
         struct local_node *local = pb->i.link->local;
@@ -384,7 +397,19 @@ IDM_T update_local_neigh(struct packet_buff *pb, struct dhash_node *dhn)
 
         } else if (!local->neigh && !dhn->neigh) {
 
-                create_neigh_node(local, dhn);
+                assertion(-500400, (dhn && !dhn->neigh));
+
+                struct neigh_node *neigh = debugMalloc(sizeof ( struct neigh_node), -300131);
+
+                memset(neigh, 0, sizeof ( struct neigh_node));
+
+                local->neigh = neigh;
+                local->neigh->local = local;
+
+                neigh->dhn = dhn;
+                dhn->neigh = neigh->nnkey = neigh;
+                avl_insert(&neigh_tree, neigh, -300141);
+                //                create_neigh_node(local, dhn);
                 
                 dbgf_track(DBGT_INFO, "NEW link=%s <-> LOCAL=%d <-> NEIGHIID4me=%d <-> dhn->id=%s",
                         pb->i.llip_str, local->local_id, local->neigh->neighIID4me, 
@@ -421,7 +446,7 @@ IDM_T update_local_neigh(struct packet_buff *pb, struct dhash_node *dhn)
         if (local->neigh)
                 free_neigh_node(local->neigh);
 
-        return FAILURE;
+        return NULL;
 
 
 
@@ -436,7 +461,7 @@ update_local_neigh_success:
         assertion(-500949, (local->neigh->dhn->neigh == local->neigh));
 
 
-        return SUCCESS;
+        return local->neigh;
 }
 
 
@@ -710,7 +735,7 @@ void purge_link_route_orig_nodes(struct dev_node *only_dev, IDM_T only_expired)
         purge_link_node(NULL, only_dev, only_expired);
 
         int i;
-        for (i = IID_RSVD_MAX + 1; i < my_iid_repos.max_free; i++) {
+        for (i = IID_MIN_USABLE; i <= my_iid_repos.max_used; i++) {
 
                 struct dhash_node *dhn;
 
@@ -807,8 +832,7 @@ struct link_node *get_link_node(struct packet_buff *pb)
                                         pb->i.llip_str, ntohl(pb->i.link_key.local_id), pb->i.iif->label_cfg.str, pb->i.pkt_sqn, local->packet_sqn,
                                         PKT_SQN_DAD_RANGE, PKT_SQN_DAD_RANGE * my_tx_interval);
 
-                                schedule_tx_task(&pb->i.iif->dummy_lndev, FRAME_TYPE_PROBLEM_ADV, sizeof (struct msg_problem_adv),
-                                        FRAME_TYPE_PROBLEM_CODE_DUP_LINK_ID, local->local_id, 0, pb->i.transmittersIID);
+                                schedule_tx_task(&pb->i.iif->dummy_lndev, FRAME_TYPE_PROBLEM_ADV, sizeof (struct msg_problem_adv), 0, FRAME_TYPE_PROBLEM_CODE_DUP_LINK_ID, local->local_id, NULL);
 
                                 // its safer to purge the old one, otherwise we might end up with hundrets
                                 //return NULL;
@@ -857,8 +881,7 @@ struct link_node *get_link_node(struct packet_buff *pb)
                                 // be carefull here. Errornous PROBLEM_ADVs cause neighboring nodes to cease!!!
                                 //struct link_dev_node dummy_lndev = {.key ={.dev = pb->i.iif, .link = link}, .mr = {ZERO_METRIC_RECORD, ZERO_METRIC_RECORD}};
 
-                                schedule_tx_task(&pb->i.iif->dummy_lndev, FRAME_TYPE_PROBLEM_ADV, sizeof (struct msg_problem_adv),
-                                        FRAME_TYPE_PROBLEM_CODE_DUP_LINK_ID, link->key.local_id, 0, pb->i.transmittersIID);
+                                schedule_tx_task(&pb->i.iif->dummy_lndev, FRAME_TYPE_PROBLEM_ADV, sizeof (struct msg_problem_adv), 0, FRAME_TYPE_PROBLEM_CODE_DUP_LINK_ID, link->key.local_id, NULL);
 
                                 // its safer to purge the old one, otherwise we might end up with hundrets
                                 //return NULL;
@@ -2219,8 +2242,8 @@ void bmx(void)
 
         for (an = NULL; (dev = avl_iterate_item(&dev_ip_tree, &an));) {
 
-                schedule_tx_task(&dev->dummy_lndev, FRAME_TYPE_DEV_ADV, SCHEDULE_UNKNOWN_MSGS_SIZE, 0, 0, 0, 0);
-                schedule_tx_task(&dev->dummy_lndev, FRAME_TYPE_DESC_ADV, ntohs(self->desc->extensionLen) + sizeof ( struct msg_description_adv), 0, 0, myIID4me, 0);
+                schedule_tx_task(&dev->dummy_lndev, FRAME_TYPE_DEV_ADV, SCHEDULE_UNKNOWN_MSGS_SIZE, 0, 0, 0, NULL);
+                schedule_tx_task(&dev->dummy_lndev, FRAME_TYPE_DESC_ADV, ntohs(self->desc->extensionLen) + sizeof ( struct msg_description_adv), myIID4me, 0, 0, NULL);
         }
 
         initializing = NO;

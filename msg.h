@@ -144,14 +144,17 @@
 
 #define FRAME_TYPE_DEV_REQ      6
 #define FRAME_TYPE_DEV_ADV      7
-#define FRAME_TYPE_LINK_REQ_ADV     8
+#define FRAME_TYPE_LINK_REQ_ADV 8
 #define FRAME_TYPE_LINK_ADV     9
 
 #define FRAME_TYPE_RP_ADV      11
 
 
-#define FRAME_TYPE_DESC_REQ    14
-#define FRAME_TYPE_DESC_ADV    15
+//#define FRAME_TYPE_DESC_REQ  13
+
+#define FRAME_TYPE_DESC_DHASH_REQ  13
+#define FRAME_TYPE_DESC_IID_REQ    14
+#define FRAME_TYPE_DESC_ADV        15
 
 
 #define FRAME_TYPE_HASH_REQ    18  // Hash-for-description-of-OG-ID requests
@@ -159,8 +162,9 @@
 
 //#define FRAME_TYPE_HELLO_REPS  21  // most-simple BMX-NG hello (nb-discovery) replies
 
-#define FRAME_TYPE_OGM_ADV     22 // most simple BMX-NG (type 0) OGM advertisements
-#define FRAME_TYPE_OGM_ACK     23 // most simple BMX-NG (type 0) OGM advertisements
+#define FRAME_TYPE_OGM_DHASH_ADV 21 // most simple BMX-NG (type 0) OGM advertisements
+#define FRAME_TYPE_OGM_IID_ADV   22 // most simple BMX-NG (type 0) OGM advertisements
+#define FRAME_TYPE_OGM_ACK       23 // most simple BMX-NG (type 0) OGM advertisements
 
 #define FRAME_TYPE_NOP         24
 #define FRAME_TYPE_MAX         (FRAME_TYPE_ARRSZ-1)
@@ -544,24 +548,30 @@ struct msg_rp_adv { // 1 byte
 
 
 
-struct msg_dhash_request { // 2 bytes
+struct msg_dhash_or_description_by_iid_request { // 2 bytes
 	IID_T receiverIID4x;
 } __attribute__((packed));
 
-struct hdr_dhash_request { // 4 bytes
+struct hdr_dhash_or_description_request { // 4 bytes
 	LOCAL_ID_T destination_local_id;
-	struct msg_dhash_request msg[];
+	struct msg_dhash_or_description_by_iid_request msg[];
 } __attribute__((packed));
 
 
-struct msg_dhash_adv { // 2 + X bytes
+struct msg_dhash_adv { // 2 + 20 bytes
 	IID_T transmitterIID4x;
 	struct description_hash dhash;
 } __attribute__((packed));
 
 
-#define msg_description_request msg_dhash_request
-#define hdr_description_request hdr_dhash_request
+
+struct msg_description_by_dhash_request { // 20 bytes
+        struct description_hash dhash;
+} __attribute__((packed));
+
+
+//#define msg_dhash_or_description_by_iid_request msg_dhash_request
+//#define hdr_dhash_or_description_request hdr_dhash_request
 
 
 
@@ -618,15 +628,6 @@ FIELD_FORMAT_END}
 
 
 
-#define OGM_JUMPS_PER_AGGREGATION 10
-
-#define OGMS_PER_AGGREG_MAX                                                                                         \
-              ( (pref_udpd_size -                                                                                   \
-                  (sizeof(struct packet_header) + sizeof(struct frame_header_long) + sizeof(struct hdr_ogm_adv) +   \
-                    (OGM_JUMPS_PER_AGGREGATION * sizeof(struct msg_ogm_adv)) ) ) /                              \
-                (sizeof(struct msg_ogm_adv)) )
-
-#define OGMS_PER_AGGREG_PREF ( OGMS_PER_AGGREG_MAX  / 2 )
 
 
 
@@ -635,7 +636,29 @@ FIELD_FORMAT_END}
 
 
 
-struct msg_ogm_adv // 4 bytes
+struct msg_ogm_dhash_adv // 24 bytes
+{
+        struct description_hash dhash; // 20 bytes
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+        unsigned int metric_mant : OGM_MANTISSA_BIT_SIZE;
+        unsigned int metric_exp :  OGM_EXPONENT_BIT_SIZE;
+        unsigned int reserved : (16-(OGM_EXPONENT_BIT_SIZE+OGM_MANTISSA_BIT_SIZE));
+//        unsigned int isTransmittersOgm : 1;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+//        unsigned int isTransmittersOgm : 1;
+        unsigned int reserved : (16-(OGM_EXPONENT_BIT_SIZE+OGM_MANTISSA_BIT_SIZE));
+        unsigned int metric_exp :  OGM_EXPONENT_BIT_SIZE;
+        unsigned int metric_mant : OGM_MANTISSA_BIT_SIZE;
+#else
+# error "Please fix <bits/endian.h>"
+#endif
+//        uint8_t metric_exp;
+//        uint8_t metric_mant;
+        OGM_SQN_T ogm_sqn; // 2 bytes
+
+} __attribute__((packed));
+
+struct msg_ogm_iid_adv // 4 bytes
 {
 	OGM_MIX_T mix; //uint16_t mix of transmitterIIDoffset, metric_mant, metric_exp
 
@@ -647,12 +670,9 @@ struct msg_ogm_adv // 4 bytes
 } __attribute__((packed));
 
 
-
 struct hdr_ogm_adv { // 2 bytes
 	AGGREG_SQN_T aggregation_sqn;
 	uint8_t ogm_dst_field_size;
-
-	struct msg_ogm_adv msg[];
 } __attribute__((packed));
 
 /*
@@ -734,8 +754,10 @@ int32_t rx_frame_iterate(struct rx_frame_iterator* it);
 #define SCHEDULE_UNKNOWN_MSGS_SIZE 0
 #define SCHEDULE_MIN_MSG_SIZE -1
 
-void schedule_tx_task(struct link_dev_node *lndev_out, uint16_t type, int16_t msgs_len,
-	uint16_t u16, uint32_t u32, IID_T myIID4x, IID_T neighIID4x);
+void schedule_tx_task(struct link_dev_node *dest_lndev, uint16_t frame_type, int16_t frame_msgs_len, IID_T myIID4x,
+        uint16_t u16, uint32_t local_id, struct description_hash *dhash);
+//void schedule_tx_task(struct link_dev_node *lndev_out, uint16_t type, int16_t msgs_len,
+//	uint16_t u16, uint32_t u32, IID_T myIID4x, IID_T neighIID4x);
 
 void register_frame_handler(struct frame_handl *array, int pos, struct frame_handl *handl);
 
