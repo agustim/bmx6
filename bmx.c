@@ -154,20 +154,20 @@ struct neigh_node *is_iid_or_dhash_of_transmitting_and_described_neigh(struct li
 
         struct neigh_node *neigh = link->local->neigh;
 
-        assertion(-500000, IMPLIES(neigh, neigh->dhn));
-        assertion(-500000, IMPLIES(neigh, neigh->dhn->on));
-        assertion(-500000, IMPLIES(neigh, neigh->dhn->neigh == neigh));
+        assertion(-501403, IMPLIES(neigh, neigh->dhn));
+        assertion(-501404, IMPLIES(neigh, neigh->dhn->on));
+        assertion(-501405, IMPLIES(neigh, neigh->dhn->neigh == neigh));
 
-        assertion(-500000, IMPLIES(iid_tables, iid >= IID_MIN_USABLE));
-        assertion(-500000, (iid >= IID_MIN_USABLE || dhash));
+        assertion(-501406, IMPLIES(iid_tables, iid >= IID_MIN_USABLE));
+        assertion(-501407, (iid >= IID_MIN_USABLE || dhash));
 
         if (neigh && (
                 (iid >= IID_MIN_USABLE && neigh->dhn == iid_get_node_by_neighIID4x(neigh, iid, YES/*verbose*/)) ||
                 (dhash && memcmp(&neigh->dhn->dhash, dhash, sizeof (struct description_hash))))) {
 
                 assertion(-500938, (neigh->dhn->neigh == neigh));
-                assertion(-500000, IMPLIES(iid >= IID_MIN_USABLE, neigh->dhn == iid_get_node_by_neighIID4x(neigh, iid, YES/*verbose*/)));
-                assertion(-500000, IMPLIES(dhash, memcmp(&neigh->dhn->dhash, dhash, sizeof (struct description_hash))));
+                assertion(-501408, IMPLIES(iid >= IID_MIN_USABLE, neigh->dhn == iid_get_node_by_neighIID4x(neigh, iid, YES/*verbose*/)));
+                assertion(-501409, IMPLIES(dhash, memcmp(&neigh->dhn->dhash, dhash, sizeof (struct description_hash))));
 
                 return neigh;
         }

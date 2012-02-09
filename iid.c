@@ -36,7 +36,7 @@ int8_t iid_extend_repos(struct iid_repos *rep)
                 (rep == &my_iid_repos) ? sizeof (IID_NODE_T*) : sizeof (IID_T), rep->tot_used, rep->arr_size);
 
         assertion(-500217, (rep != &my_iid_repos || IID_SPREAD_FK != 1 || (rep->tot_used ) == rep->arr_size));
-        assertion(-500000, IMPLIES(!iid_tables, rep == &my_iid_repos));
+        assertion(-501410, IMPLIES(!iid_tables, rep == &my_iid_repos));
 
         if (rep->arr_size + IID_REPOS_SIZE_BLOCK >= IID_REPOS_SIZE_WARN) {
 
@@ -176,11 +176,11 @@ IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *neigh, IID_T neighIID4x, IDM
 {
         TRACE_FUNCTION_CALL;
 
-        assertion(-500000, (neigh));
+        assertion(-501411, (neigh));
 
         struct iid_repos *rep = &neigh->neighIID4x_repos;
 
-        assertion(-500000, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
+        assertion(-501412, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
 
         if (!iid_tables) {
 
@@ -253,13 +253,13 @@ STATIC_FUNC
 void _iid_set(struct iid_repos *rep, IID_T repIId4x, IID_T myIID4x, IID_NODE_T *dhn)
 {
         TRACE_FUNCTION_CALL;
-        assertion(-500000, IMPLIES(!iid_tables, rep == &my_iid_repos));
+        assertion(-501413, IMPLIES(!iid_tables, rep == &my_iid_repos));
         assertion(-500535, (repIId4x >= IID_MIN_USABLE));
-        assertion(-500000, (repIId4x < rep->arr_size ));
+        assertion(-501415, (repIId4x < rep->arr_size ));
 
         assertion(-500530, (XOR(myIID4x >= IID_MIN_USABLE, dhn))); // eihter the one ore the other !!
-        assertion(-500000, IMPLIES(rep == &my_iid_repos, dhn));
-        assertion(-500000, IMPLIES(rep != &my_iid_repos, myIID4x >= IID_MIN_USABLE));
+        assertion(-501416, IMPLIES(rep == &my_iid_repos, dhn));
+        assertion(-501417, IMPLIES(rep != &my_iid_repos, myIID4x >= IID_MIN_USABLE));
 
         if (myIID4x) {
                 rep->arr.ref[repIId4x].myIID4x = myIID4x;
@@ -341,7 +341,7 @@ IDM_T iid_set_neighIID4x(struct iid_repos *rep, IID_T neighIID4x, IID_T myIID4x)
         assertion(-500384, (rep && rep != &my_iid_repos));
         assertion(-500245, (my_iid_repos.max_used >= myIID4x));
 
-        assertion(-500000, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
+        assertion(-501418, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
 
@@ -422,7 +422,7 @@ void iid_free_neighIID4x_by_myIID4x( struct iid_repos *rep, IID_T myIID4x)
         TRACE_FUNCTION_CALL;
         assertion(-500282, (rep != &my_iid_repos));
         assertion(-500328, (myIID4x >= IID_MIN_USABLE));
-        assertion(-500000, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
+        assertion(-501419, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
 
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
@@ -431,7 +431,7 @@ void iid_free_neighIID4x_by_myIID4x( struct iid_repos *rep, IID_T myIID4x)
 
         if (dhn->neigh && &dhn->neigh->neighIID4x_repos == rep) {
 
-                assertion(-500000, 0); // would result in a  described neighbor with unknown neighIID4neigh
+                assertion(-501420, 0); // would result in a  described neighbor with unknown neighIID4neigh
 
                 if (iid_tables) {
                         rep->neighIID4neigh = IID_RSVD_UNUSED;
@@ -465,7 +465,7 @@ static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt
 
         if (cmd == OPT_APPLY) {
 
-                assertion(-500000, (iid_tables != strtol(patch->val, NULL, 10)));
+                assertion(-501421, (iid_tables != strtol(patch->val, NULL, 10)));
                 iid_tables = !iid_tables;
 
                 struct avl_node *an;
@@ -474,7 +474,7 @@ static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt
                 
                 for (an = NULL; (neigh = avl_iterate_item(&neigh_tree, &an));) {
 
-                        assertion(-500000, (neigh->dhn));
+                        assertion(-501420, (neigh->dhn));
 
                         struct iid_repos *rep = &neigh->neighIID4x_repos;
 
@@ -491,7 +491,7 @@ static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt
                                         if (ref->myIID4x == neigh->dhn->myIID4orig) {
 
                                                 if ((uint16_t) (((uint16_t) bmx_time_sec) - rep->referred_by_neigh_timestamp_sec) < IID_DHASH_VALIDITY_TO / 1000) {
-                                                        assertion(-500000, (neighIID4neigh == IID_RSVD_UNUSED));
+                                                        assertion(-501422, (neighIID4neigh == IID_RSVD_UNUSED));
                                                         referred_by_neigh_timestamp_sec = ref->referred_by_neigh_timestamp_sec;
                                                         neighIID4neigh = neighIID4x;
                                                 }
@@ -505,9 +505,9 @@ static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt
 
                         } else {
 
-                                assertion(-500000, (rep->arr_size == 0));
-                                assertion(-500000, (rep->neighIID4neigh >= IID_MIN_USABLE));
-                                assertion(-500000, (neigh->dhn->myIID4orig >= IID_MIN_USABLE));
+                                assertion(-501423, (rep->arr_size == 0));
+                                assertion(-501424, (rep->neighIID4neigh >= IID_MIN_USABLE));
+                                assertion(-501425, (neigh->dhn->myIID4orig >= IID_MIN_USABLE));
 
                                 iid_set_neighIID4x(rep, rep->neighIID4neigh, neigh->dhn->myIID4orig);
                                 rep->arr.ref[rep->neighIID4neigh].referred_by_neigh_timestamp_sec = rep->referred_by_neigh_timestamp_sec;

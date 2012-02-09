@@ -962,7 +962,7 @@ void schedule_or_purge_ogm_aggregations(IDM_T purge_all)
                                         "ogm_aggreg_list full min %d max %d items %d unaggregated %d",
                                         oan->sqn, ogm_aggreg_sqn_max, ogm_aggreg_list.items, ogm_aggreg_pending);
 
-                                debugFree(oan->ogm_dhash_advs, -300000);
+                                debugFree(oan->ogm_dhash_advs, -300442);
                                 debugFree(oan->ogm_iid_advs, -300185);
                                 debugFree(oan, -300186);
                                 list_del_next(&ogm_aggreg_list, ((struct list_node*) & ogm_aggreg_list));
@@ -981,7 +981,7 @@ void schedule_or_purge_ogm_aggregations(IDM_T purge_all)
                 if (purge_all || oan->tx_attempt >= ogm_adv_tx_iters || XOR(oan->ogm_iid_advs, iid_tables)) {
 
                         list_del_next(&ogm_aggreg_list, lprev);
-                        debugFree(oan->ogm_dhash_advs, -300000);
+                        debugFree(oan->ogm_dhash_advs, -300443);
                         debugFree(oan->ogm_iid_advs, -300183);
                         debugFree(oan, -300184);
 
@@ -1103,12 +1103,12 @@ int32_t tx_msg_dhash_or_description_request(struct tx_frame_iterator *it)
                 neighIID4x, memAsHexString(&ttn->task.dhash, sizeof (ttn->task.dhash)), iid_tables,
                 dhn ? "ALREADY RESOLVED (req cancelled)" : ttn->task.link->local->neigh ? "ABOUT NB HIMSELF" : "ABOUT SOMEBODY");
 
-        assertion(-500000, (it->frame_type == ttn->task.type));
-        assertion(-500000, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_DHASH_REQ));
-        assertion(-500000, XOR(!is_zero(&ttn->task.dhash, sizeof (ttn->task.dhash)), neighIID4x >= IID_MIN_USABLE));
-        assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DESC_DHASH_REQ, neighIID4x == IID_RSVD_UNUSED));
-        assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DESC_IID_REQ, neighIID4x >= IID_MIN_USABLE));
-        assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DHASH_REQ, neighIID4x >= IID_MIN_USABLE));
+        assertion(-501426, (it->frame_type == ttn->task.type));
+        assertion(-501427, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_DHASH_REQ));
+        assertion(-501428, XOR(!is_zero(&ttn->task.dhash, sizeof (ttn->task.dhash)), neighIID4x >= IID_MIN_USABLE));
+        assertion(-501429, IMPLIES(it->frame_type == FRAME_TYPE_DESC_DHASH_REQ, neighIID4x == IID_RSVD_UNUSED));
+        assertion(-501430, IMPLIES(it->frame_type == FRAME_TYPE_DESC_IID_REQ, neighIID4x >= IID_MIN_USABLE));
+        assertion(-501431, IMPLIES(it->frame_type == FRAME_TYPE_DHASH_REQ, neighIID4x >= IID_MIN_USABLE));
 //        assertion(-500853, (sizeof ( struct msg_dhash_or_description_by_iid_request) == sizeof ( struct msg_dhash_or_description_by_iid_request)));
         assertion(-500855, (tx_iterator_cache_data_space_pref(it) >= handl->min_msg_size));
         assertion(-500856, (ttn->task.link));
@@ -1935,7 +1935,7 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
         uint16_t msgs = (it->frame_msgs_length - ogm_dst_field_size) /
                 (is_ogm_iid_adv ? sizeof (struct msg_ogm_iid_adv) : sizeof (struct msg_ogm_dhash_adv));
 
-        assertion(-500000, (neigh && neigh->dhn));
+        assertion(-501432, (neigh && neigh->dhn));
 
         if (!iid_tables && is_ogm_iid_adv)
                 return it->frame_msgs_length;
@@ -2236,7 +2236,7 @@ struct dhash_node *process_dhash_description_neighIID4x
         TRACE_FUNCTION_CALL;
 
         assertion(-500688, (dhash));
-        assertion(-500000, (neighIID4x >= IID_MIN_USABLE)); // must have been checked by calling function!
+        assertion(-501433, (neighIID4x >= IID_MIN_USABLE)); // must have been checked by calling function!
 
         struct dhash_node *orig_dhn = NULL;
         struct local_node *local = pb->i.link->local;
@@ -2272,7 +2272,7 @@ struct dhash_node *process_dhash_description_neighIID4x
 
                 } else if (neigh) {
                         // received via a known neighbor, and is NOT about the transmitter:
-                        assertion(-500000, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, IID_RSVD_UNUSED, dhash)));
+                        assertion(-501434, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, IID_RSVD_UNUSED, dhash)));
 
                         if (orig_dhn == self->dhn) {
                                 // is about myself:
@@ -2462,7 +2462,7 @@ int32_t rx_msg_dhash_or_description_request(struct rx_frame_iterator *it)
 {
         TRACE_FUNCTION_CALL;
 //        assertion( -500365 , (sizeof( struct msg_dhash_or_description_by_iid_request ) == sizeof( struct msg_dhash_or_description_by_iid_request)));
-        assertion(-500000, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_DHASH_REQ));
+        assertion(-501435, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_DHASH_REQ));
         struct packet_buff *pb = it->pb;
         struct hdr_dhash_or_description_request *hdr = (struct hdr_dhash_or_description_request*) (it->frame_data);
         struct dhash_node *dhn;
