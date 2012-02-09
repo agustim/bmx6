@@ -59,7 +59,7 @@ extern struct iid_repos my_iid_repos;
 
 //int8_t iid_extend_repos( struct iid_repos *rep );
 
-void iid_purge_repos( struct iid_repos *rep );
+void iid_purge_repos( struct iid_repos *rep, TIME_T timeout );
 
 void iid_free(struct iid_repos *rep, IID_T iid);
 
@@ -75,6 +75,6 @@ IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *nn, IID_T neighIID4x, IDM_T 
 
 IID_NODE_T* iid_get_node_by_myIID4x( IID_T myIID4x );
 
-
+void init_iid( void );
 
 #endif

@@ -220,16 +220,16 @@ void purge_dhash_iid(struct dhash_node *dhn)
 }
 
 STATIC_FUNC
- void purge_dhash_invalid_list( IDM_T force_purge_all ) {
+ void purge_dhash_invalid_list( TIME_T timeout ) {
 
         TRACE_FUNCTION_CALL;
         struct dhash_node *dhn;
 
-        dbgf_all( DBGT_INFO, "%s", force_purge_all ? "force_purge_all" : "only_expired");
+        dbgf_all(DBGT_INFO, "timeout=%d", timeout);
 
         while ((dhn = plist_get_first(&dhash_invalid_plist)) ) {
 
-                if (force_purge_all || ((uint32_t) (bmx_time - dhn->referred_by_me_timestamp) > MIN_DHASH_TO)) {
+                if (!timeout || ((uint32_t) (bmx_time - dhn->referred_by_me_timestamp) > timeout)) {
 
                         dbgf_all( DBGT_INFO, "dhash %8X myIID4orig %d", dhn->dhash.h.u32[0], dhn->myIID4orig);
 
@@ -266,7 +266,7 @@ void free_dhash_node( struct dhash_node *dhn )
         purge_dhash_iid(dhn);
 
         // It must be ensured that I am not reusing this IID for a while, so it must be invalidated
-        // but the description and its' resulting dhash might become valid again, so I give it a unique and illegal value.
+        // but the description and its dhash might become valid again, so I give it a unique and illegal value.
         memset(&dhn->dhash, 0, sizeof ( struct description_hash));
         dhn->dhash.h.u32[(sizeof ( struct description_hash) / sizeof (uint32_t)) - 1] = blocked_counter++;
 
@@ -336,7 +336,7 @@ void free_neigh_node(struct neigh_node *neigh)
         assertion(-500967, (neigh->local->neigh == neigh));
 
         avl_remove(&neigh_tree, &neigh->nnkey, -300196);
-        iid_purge_repos(&neigh->neighIID4x_repos);
+        iid_purge_repos(&neigh->neighIID4x_repos, 0);
 
         neigh->dhn->neigh = NULL;
         neigh->dhn = NULL;
@@ -347,24 +347,6 @@ void free_neigh_node(struct neigh_node *neigh)
 }
 
 
-
-STATIC_FUNC
-void create_neigh_node(struct local_node *local, struct dhash_node * dhn)
-{
-        TRACE_FUNCTION_CALL;
-        assertion(-500400, (dhn && !dhn->neigh));
-
-        struct neigh_node *neigh = debugMalloc(sizeof ( struct neigh_node), -300131);
-
-        memset(neigh, 0, sizeof ( struct neigh_node));
-
-        local->neigh = neigh;
-        local->neigh->local = local;
-
-        neigh->dhn = dhn;
-        dhn->neigh = neigh->nnkey = neigh;
-        avl_insert(&neigh_tree, neigh, -300141);
-}
 
 
 
@@ -1349,7 +1331,7 @@ void cleanup_all(int32_t status)
                         debugFree(handl, -300363);
                 }
 
-                purge_dhash_invalid_list(YES);
+                purge_dhash_invalid_list(0);
 
 
 		// last, close debugging system and check for forgotten resources...
@@ -2296,12 +2278,18 @@ void bmx(void)
 		if ( U32_LT( seldom_timeout + 5000, bmx_time ) ) {
 
                         struct orig_node *on;
+                        struct avl_node *an;
+                        struct neigh_node *neigh;
                         GLOBAL_ID_T id;
                         memset(&id, 0, sizeof (GLOBAL_ID_T));
 
                         purge_link_route_orig_nodes(NULL, YES);
 
-                        purge_dhash_invalid_list(NO);
+                        purge_dhash_invalid_list(IID_DHASH_PURGE_TO);
+
+                        for (an = NULL; (neigh = avl_iterate_item(&neigh_tree, &an));)
+                                iid_purge_repos(&neigh->neighIID4x_repos, IID_DHASH_PURGE_TO);
+
 
                         while ((on = avl_next_item(&blocked_tree, &id))) {
 
@@ -2390,6 +2378,7 @@ int main(int argc, char *argv[])
 
         init_avl();
 
+        init_iid();
 
         if (init_plugin() == SUCCESS) {
 

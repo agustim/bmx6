@@ -1101,7 +1101,7 @@ int32_t tx_msg_dhash_or_description_request(struct tx_frame_iterator *it)
                 dhn ? "ALREADY RESOLVED (req cancelled)" : ttn->task.link->local->neigh ? "ABOUT NB HIMSELF" : "ABOUT SOMEBODY");
 
         assertion(-500000, (it->frame_type == ttn->task.type));
-        assertion(-500000, XOR(it->frame_type == FRAME_TYPE_DESC_DHASH_REQ, XOR(it->frame_type == FRAME_TYPE_DESC_IID_REQ, it->frame_type == FRAME_TYPE_HASH_REQ)));
+        assertion(-500000, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_HASH_REQ));
         assertion(-500000, XOR(!is_zero(&ttn->task.dhash, sizeof (ttn->task.dhash)), neighIID4x >= IID_MIN_USABLE));
         assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DESC_DHASH_REQ, neighIID4x == IID_RSVD_UNUSED));
         assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DESC_IID_REQ, neighIID4x >= IID_MIN_USABLE));
@@ -2373,9 +2373,9 @@ int32_t rx_msg_dhash_adv( struct rx_frame_iterator *it)
 
 
                 if (!dhn) {
-                        if (iid_tables)
+                        if (iid_tables && is_transmitter_adv)
                                 schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DESC_IID_REQ, SCHEDULE_MIN_MSG_SIZE, 0, neighIID4x, 0, NULL);
-                        else
+                        else if (!iid_tables)
                                 schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DESC_DHASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, 0, 0, &adv->dhash);
                 }
 
@@ -2486,7 +2486,7 @@ int32_t rx_msg_dhash_or_description_request(struct rx_frame_iterator *it)
                         it->handl->name, pb->i.llip_str, ntohl(hdr->destination_local_id), myIID4x);
 
                 if (myIID4x < IID_MIN_USABLE)
-                        return it->handl->min_msg_size;
+                        return FAILURE;
 
                 dhn = iid_get_node_by_myIID4x(myIID4x);
                 assertion(-500251, (dhn && dhn->myIID4orig == myIID4x));

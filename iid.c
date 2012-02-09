@@ -17,12 +17,15 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "bmx.h"
 #include "iid.h"
 #include "tools.h"
 
-struct iid_repos my_iid_repos = { 0,0,0,0,{NULL} };
+#define CODE_CATEGORY_NAME "iid"
+
+struct iid_repos my_iid_repos = { 0,0,0,0,0,0, {NULL} };
 
 int8_t iid_extend_repos(struct iid_repos *rep)
 {
@@ -64,15 +67,38 @@ int8_t iid_extend_repos(struct iid_repos *rep)
 }
 
 
-void iid_purge_repos( struct iid_repos *rep )
+void iid_purge_repos( struct iid_repos *rep, TIME_T timeout )
 {
         TRACE_FUNCTION_CALL;
 
-        if (rep->arr.u8)
-                debugFree(rep->arr.u8, -300135);
+        if (timeout) {
 
-        memset(rep, 0, sizeof ( struct iid_repos));
+                if (rep->neighIID4neigh >= IID_MIN_USABLE &&
+                        (((uint16_t) (((uint16_t) bmx_time_sec) - rep->referred_by_neigh_timestamp_sec) >= timeout / 1000))) {
+                        rep->referred_by_neigh_timestamp_sec = 0;
+                        rep->neighIID4neigh = IID_RSVD_UNUSED;
+                }
 
+                if (rep->tot_used > IID_MIN_USABLE ) {
+
+                        IID_T iid;
+                        for (iid = IID_MIN_USABLE; iid <= rep->max_used; iid++) {
+
+                                struct iid_ref *ref = &rep->arr.ref[iid];
+
+                                if (((uint16_t) (((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec) >= timeout / 1000))
+                                        iid_free(rep, iid);
+
+                        }
+                }
+
+        } else {
+
+                if (rep->arr.u8)
+                        debugFree(rep->arr.u8, -300135);
+
+                memset(rep, 0, sizeof ( struct iid_repos));
+        }
 }
 
 void iid_free(struct iid_repos *rep, IID_T iid)
@@ -87,7 +113,7 @@ void iid_free(struct iid_repos *rep, IID_T iid)
         if (m) {
                 rep->arr.node[iid] = NULL;
         } else {
-                rep->arr.ref[iid].myIID4x = 0;
+                rep->arr.ref[iid].myIID4x = IID_RSVD_UNUSED;
                 rep->arr.ref[iid].referred_by_neigh_timestamp_sec = 0;
         }
 
@@ -111,11 +137,11 @@ void iid_free(struct iid_repos *rep, IID_T iid)
         dbgf_all( DBGT_INFO, "mine=%d, iid=%d tot_used=%d, min_free=%d max_used=%d",
                 m, iid, rep->tot_used, rep->min_free, rep->max_used);
 
-        if (rep->tot_used > 0 && rep->tot_used <= IID_MIN_USABLE) {
+        if (rep->tot_used <= IID_MIN_USABLE) {
 
                 assertion(-500362, (rep->tot_used == IID_MIN_USABLE && rep->max_used == (IID_MIN_USABLE - 1) && rep->min_free == IID_MIN_USABLE));
 
-                iid_purge_repos( rep );
+                iid_purge_repos( rep, 0 );
 
         }
 
@@ -145,22 +171,36 @@ IID_NODE_T* iid_get_node_by_myIID4x(IID_T myIID4x)
 }
 
 
-IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *nn, IID_T neighIID4x, IDM_T verbose)
+IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *neigh, IID_T neighIID4x, IDM_T verbose)
 {
         TRACE_FUNCTION_CALL;
 
-        assertion(-500000, (!iid_tables));
+        assertion(-500000, (neigh));
+        assertion(-500000, (iid_tables ?
+                neigh->neighIID4x_repos.tot_used > IID_MIN_USABLE :
+                neigh->neighIID4x_repos.neighIID4neigh >= IID_MIN_USABLE));
 
-        if (!nn || nn->neighIID4x_repos.max_used < neighIID4x) {
+        if (!iid_tables) {
 
-                if (verbose) {
-                        dbgf_all(DBGT_INFO, "NB: global_id=%s neighIID4x=%d to large for neighIID4x_repos",
-                                nn ? globalIdAsString(&nn->dhn->on->global_id) : "???", neighIID4x);
+                if (neigh->neighIID4x_repos.neighIID4neigh == neighIID4x &&
+                        (((uint16_t) (((uint16_t) bmx_time_sec) - neigh->neighIID4x_repos.referred_by_neigh_timestamp_sec) < IID_DHASH_VALIDITY_TO / 1000))) {
+
+                        neigh->neighIID4x_repos.referred_by_neigh_timestamp_sec = bmx_time_sec;
+                        return neigh->dhn;
                 }
                 return NULL;
         }
 
-        struct iid_ref *ref = &(nn->neighIID4x_repos.arr.ref[neighIID4x]);
+        if (neigh->neighIID4x_repos.max_used < neighIID4x) {
+
+                if (verbose) {
+                        dbgf_all(DBGT_INFO, "NB: global_id=%s neighIID4x=%d to large for neighIID4x_repos",
+                                neigh ? globalIdAsString(&neigh->dhn->on->global_id) : "???", neighIID4x);
+                }
+                return NULL;
+        }
+
+        struct iid_ref *ref = &(neigh->neighIID4x_repos.arr.ref[neighIID4x]);
 
 
         if (ref->myIID4x < IID_MIN_USABLE) {
@@ -169,8 +209,9 @@ IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *nn, IID_T neighIID4x, IDM_T 
                         dbgf_all(DBGT_WARN, "neighIID4x=%d not recorded by neighIID4x_repos", neighIID4x);
                 }
 
-        } else if (((((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec) >
-                ((MIN_DHASH_TO - (MIN_DHASH_TO / DHASH_TO_TOLERANCE_FK)) / 1000))) {
+        } else
+
+                if ((uint16_t) (((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec) >= IID_DHASH_VALIDITY_TO / 1000) {
 
                 if (verbose) {
                         dbgf_track(DBGT_WARN, "neighIID4x=%d outdated in neighIID4x_repos, now_sec=%d, ref_sec=%d",
@@ -185,8 +226,10 @@ IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *nn, IID_T neighIID4x, IDM_T 
 
                         IID_NODE_T *dhn = my_iid_repos.arr.node[ref->myIID4x];
 
-                        if (dhn)
+                        if (dhn) {
+
                                 return dhn;
+                        }
 
                         if (verbose) {
                                 dbgf_track(DBGT_WARN, "neighIID4x=%d -> myIID4x=%d empty!", neighIID4x, ref->myIID4x);
@@ -288,13 +331,22 @@ IDM_T iid_set_neighIID4x(struct iid_repos *neigh_rep, IID_T neighIID4x, IID_T my
         assertion(-500326, (neighIID4x >= IID_MIN_USABLE));
         assertion(-500327, (myIID4x >= IID_MIN_USABLE));
         assertion(-500384, (neigh_rep && neigh_rep != &my_iid_repos));
-        assertion(-500000, (!iid_tables));
-
         assertion(-500245, (my_iid_repos.max_used >= myIID4x));
+
+        assertion(-500000, (iid_tables ? neigh_rep->tot_used > IID_MIN_USABLE : neigh_rep->neighIID4neigh >= IID_MIN_USABLE));
+
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
 
         assertion(-500485, (dhn && dhn->on));
+
+        if ( !iid_tables ) {
+                if (dhn->neigh && &dhn->neigh->neighIID4x_repos == neigh_rep) {
+                        neigh_rep->neighIID4neigh = neighIID4x;
+                        neigh_rep->referred_by_neigh_timestamp_sec = bmx_time_sec;
+                }
+                return SUCCESS;
+        }
 
         if (neigh_rep->max_used >= neighIID4x) {
 
@@ -303,11 +355,11 @@ IDM_T iid_set_neighIID4x(struct iid_repos *neigh_rep, IID_T neighIID4x, IID_T my
                 if (ref->myIID4x >= IID_MIN_USABLE) {
 
                         if (ref->myIID4x == myIID4x ||
-                                (((uint16_t)(((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec)) >=
-                                ((MIN_DHASH_TO - (MIN_DHASH_TO / DHASH_TO_TOLERANCE_FK)) / 1000))) {
+                                (((uint16_t) (((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec)) >= IID_DHASH_VALIDITY_TO / 1000)) {
 
                                 ref->myIID4x = myIID4x;
                                 ref->referred_by_neigh_timestamp_sec = bmx_time_sec;
+
                                 return SUCCESS;
                         }
 
@@ -327,6 +379,8 @@ IDM_T iid_set_neighIID4x(struct iid_repos *neigh_rep, IID_T neighIID4x, IID_T my
                                 );
 
 //                        EXITERROR(-500701, (0));
+
+                        neigh_rep->neighIID4neigh = IID_RSVD_UNUSED;
                         
                         return FAILURE;
                 }
@@ -363,6 +417,24 @@ void iid_free_neighIID4x_by_myIID4x( struct iid_repos *rep, IID_T myIID4x)
         TRACE_FUNCTION_CALL;
         assertion(-500282, (rep != &my_iid_repos));
         assertion(-500328, (myIID4x >= IID_MIN_USABLE));
+        assertion(-500000, (iid_tables ? rep->tot_used > IID_MIN_USABLE : rep->neighIID4neigh >= IID_MIN_USABLE));
+
+
+        IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
+
+        assertion(-500485, (dhn && dhn->on));
+
+        if (dhn->neigh && &dhn->neigh->neighIID4x_repos == rep) {
+
+                assertion(-500000, 0); // would result in a  described neighbor with unknown neighIID4neigh
+
+                if (iid_tables) {
+                        rep->neighIID4neigh = IID_RSVD_UNUSED;
+                        rep->referred_by_neigh_timestamp_sec = 0;
+                        return;
+                }
+        }
+
 
         IID_T p;
         uint16_t removed = 0;
@@ -382,3 +454,79 @@ void iid_free_neighIID4x_by_myIID4x( struct iid_repos *rep, IID_T myIID4x)
 }
 
 
+
+static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt, struct opt_parent *patch, struct ctrl_node *cn )
+{
+
+        if (cmd == OPT_APPLY) {
+
+                assertion(-500000, (iid_tables != strtol(patch->val, NULL, 10)));
+                iid_tables = !iid_tables;
+
+                struct avl_node *an;
+                struct neigh_node *neigh;
+
+                
+                for (an = NULL; (neigh = avl_iterate_item(&neigh_tree, &an));) {
+
+                        assertion(-500000, (neigh->dhn));
+
+                        struct iid_repos *rep = &neigh->neighIID4x_repos;
+
+                        if (!iid_tables) { //then purge all distributed iid tables and save neighIID4neigh
+
+                                IID_T neighIID4neigh = IID_RSVD_UNUSED;
+                                IID_T neighIID4x = IID_RSVD_UNUSED;
+                                uint16_t referred_by_neigh_timestamp_sec = 0;
+
+                                for (neighIID4x = IID_MIN_USABLE; neighIID4x <= rep->max_used; neighIID4x++) {
+
+                                        struct iid_ref *ref = &rep->arr.ref[neighIID4x];
+
+                                        if (ref->myIID4x == neigh->dhn->myIID4orig) {
+
+                                                if ((uint16_t) (((uint16_t) bmx_time_sec) - rep->referred_by_neigh_timestamp_sec) < IID_DHASH_VALIDITY_TO / 1000) {
+                                                        assertion(-500000, (neighIID4neigh == IID_RSVD_UNUSED));
+                                                        referred_by_neigh_timestamp_sec = ref->referred_by_neigh_timestamp_sec;
+                                                        neighIID4neigh = neighIID4x;
+                                                }
+                                        }
+                                }
+
+                                iid_purge_repos(rep, 0);
+
+                                rep->neighIID4neigh = neighIID4neigh;
+                                rep->referred_by_neigh_timestamp_sec = referred_by_neigh_timestamp_sec;
+
+                        } else {
+
+                                assertion(-500000, (rep->arr_size == 0));
+                                assertion(-500000, (rep->neighIID4neigh >= IID_MIN_USABLE));
+                                assertion(-500000, (neigh->dhn->myIID4orig >= IID_MIN_USABLE));
+
+                                iid_set_neighIID4x(rep, rep->neighIID4neigh, neigh->dhn->myIID4orig);
+                                rep->arr.ref[rep->neighIID4neigh].referred_by_neigh_timestamp_sec = rep->referred_by_neigh_timestamp_sec;
+                                rep->referred_by_neigh_timestamp_sec = 0;
+                                rep->neighIID4neigh = IID_RSVD_UNUSED;
+                        }
+                }
+        }
+
+	return SUCCESS;
+}
+
+static struct opt_type iid_options[]=
+{
+//        ord parent long_name          shrt Attributes				*ival		min		max		default		*func,*syntax,*help
+
+	{ODI,0,"iidTables",  	        0, 5,0,A_PS1,A_ADM,A_DYI,A_CFA,A_ANY,	&iid_tables,	0,	        1,	        1,0,	        opt_iid_tables,
+			ARG_VALUE_FORM,	"enable/disable support for distributed IID tables "}
+
+};
+
+
+void init_iid( void )
+{
+	register_options_array( iid_options, sizeof( iid_options ), CODE_CATEGORY_NAME );
+
+}
