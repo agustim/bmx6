@@ -191,11 +191,6 @@ struct float_u8 {
 
 typedef struct float_u8 FMETRIC_U8_T;
 
-#define MIN_USE_IID 0
-#define MAX_USE_IID 1
-#define DEF_USE_IID 1
-#define ARG_USE_IID "individualIdentifiers"
-extern int32_t iid_tables;
 
 
 #define MIN_TX_INTERVAL 35
@@ -235,10 +230,6 @@ extern int32_t dad_to;
 #define MAX_DROP_ALL_PACKETS 1
 #define ARG_DROP_ALL_PACKETS "dropAllPackets"
 
-
-
-#define IID_DHASH_PURGE_TO 300000
-#define IID_DHASH_VALIDITY_TO (IID_DHASH_PURGE_TO - (IID_DHASH_PURGE_TO / 10))
 
 
 

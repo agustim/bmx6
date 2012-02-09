@@ -31,6 +31,19 @@
 #define IID_SPREAD_FK   1  /*default=2 , 1 means no spreading    #define IID_REPOS_USAGE_WARNING 10 */
 
 
+
+#define IID_DHASH_PURGE_TO 300000
+#define IID_DHASH_VALIDITY_TO (IID_DHASH_PURGE_TO - (IID_DHASH_PURGE_TO / 10))
+
+
+
+#define MIN_USE_IID 0
+#define MAX_USE_IID 1
+#define DEF_USE_IID 1
+#define ARG_USE_IID "individualIdentifiers"
+extern int32_t iid_tables;
+
+
 struct iid_ref {
 	IID_T myIID4x;
 	uint16_t referred_by_neigh_timestamp_sec;

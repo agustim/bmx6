@@ -45,7 +45,6 @@
 int32_t drop_all_frames = DEF_DROP_ALL_FRAMES;
 int32_t drop_all_packets = DEF_DROP_ALL_PACKETS;
 
-int32_t iid_tables = DEF_USE_IID;
 
 
 int32_t dad_to = DEF_DAD_TO;

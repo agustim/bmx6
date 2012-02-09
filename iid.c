@@ -26,6 +26,7 @@
 #define CODE_CATEGORY_NAME "iid"
 
 struct iid_repos my_iid_repos = { 0,0,0,0,0,0, {NULL} };
+int32_t iid_tables = DEF_USE_IID;
 
 int8_t iid_extend_repos(struct iid_repos *rep)
 {
@@ -34,7 +35,7 @@ int8_t iid_extend_repos(struct iid_repos *rep)
         dbgf_all(DBGT_INFO, "sizeof iid: %zu,  tot_used %d  arr_size %d ",
                 (rep == &my_iid_repos) ? sizeof (IID_NODE_T*) : sizeof (IID_T), rep->tot_used, rep->arr_size);
 
-        assertion(-500217, (rep != &my_iid_repos || IID_SPREAD_FK != 1 || rep->tot_used == rep->arr_size));
+        assertion(-500217, (rep != &my_iid_repos || IID_SPREAD_FK != 1 || (rep->tot_used ) == rep->arr_size));
         assertion(-500000, IMPLIES(!iid_tables, rep == &my_iid_repos));
 
         if (rep->arr_size + IID_REPOS_SIZE_BLOCK >= IID_REPOS_SIZE_WARN) {
@@ -107,7 +108,7 @@ void iid_free(struct iid_repos *rep, IID_T iid)
         int m = (rep == &my_iid_repos);
 
         assertion(-500330, (iid >= IID_MIN_USABLE));
-        assertion(-500228, (iid < rep->arr_size && iid <= rep->max_used && rep->tot_used >= IID_MIN_USABLE));
+        assertion(-500228, (iid < rep->arr_size && iid <= rep->max_used && rep->tot_used > IID_MIN_USABLE));
         assertion(-500229, ((m ? (rep->arr.node[iid] != NULL) : (rep->arr.ref[iid].myIID4x) != 0)));
 
         if (m) {
@@ -248,37 +249,43 @@ IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *neigh, IID_T neighIID4x, IDM
 
 
 STATIC_FUNC
-void _iid_set(struct iid_repos *rep, IID_T IIDpos, IID_T myIID4x, IID_NODE_T *dhn)
+void _iid_set(struct iid_repos *rep, IID_T repIId4x, IID_T myIID4x, IID_NODE_T *dhn)
 {
         TRACE_FUNCTION_CALL;
-        assertion(-500535, (IIDpos >= IID_MIN_USABLE));
+        assertion(-500000, IMPLIES(!iid_tables, rep == &my_iid_repos));
+        assertion(-500535, (repIId4x >= IID_MIN_USABLE));
+        assertion(-500000, (repIId4x < rep->arr_size ));
+
         assertion(-500530, (XOR(myIID4x >= IID_MIN_USABLE, dhn))); // eihter the one ore the other !!
         assertion(-500000, IMPLIES(rep == &my_iid_repos, dhn));
         assertion(-500000, IMPLIES(rep != &my_iid_repos, myIID4x >= IID_MIN_USABLE));
 
+        if (myIID4x) {
+                rep->arr.ref[repIId4x].myIID4x = myIID4x;
+                rep->arr.ref[repIId4x].referred_by_neigh_timestamp_sec = bmx_time_sec;
+        } else {
+                rep->arr.node[repIId4x] = dhn;
+        }
+
         rep->tot_used++;
-        rep->max_used = MAX( rep->max_used, IIDpos );
+        rep->max_used = MAX( rep->max_used, repIId4x );
 
-        IID_T min = rep->min_free;
+        if (rep->min_free == repIId4x) {
 
-        if (min == IIDpos) {
-                for (min++; min < rep->arr_size; min++) {
+                IID_T min_free = rep->min_free + 1;
 
-                        if (myIID4x ? !(rep->arr.ref[min].myIID4x) : !(rep->arr.node[min]))
+                for (; min_free < rep->arr_size; min_free++) {
+
+                        if (myIID4x ? !(rep->arr.ref[min_free].myIID4x) : !(rep->arr.node[min_free]))
                                 break;
                 }
+
+                rep->min_free = min_free;
         }
 
-        assertion(-500244, (min < rep->max_used));
+        assertion(-500244, (rep->min_free <= rep->max_used + 1));
 
-        rep->min_free = min;
 
-        if (myIID4x) {
-                rep->arr.ref[IIDpos].myIID4x = myIID4x;
-                rep->arr.ref[IIDpos].referred_by_neigh_timestamp_sec = bmx_time_sec;
-        } else {
-                rep->arr.node[IIDpos] = dhn;
-        }
 }
 
 
@@ -299,7 +306,7 @@ IID_T iid_new_myIID4x(IID_NODE_T *dhn)
 
                 uint32_t random = rand_num(my_iid_repos.arr_size);
 
-                // Never put random function intro MAX()! It would be called twice
+                // Never put random function into MAX()! It would be called twice
                 myIID4x = MAX(IID_MIN_USABLE, random);
 
                 while (my_iid_repos.arr.node[myIID4x]) {
@@ -333,8 +340,7 @@ IDM_T iid_set_neighIID4x(struct iid_repos *neigh_rep, IID_T neighIID4x, IID_T my
         assertion(-500384, (neigh_rep && neigh_rep != &my_iid_repos));
         assertion(-500245, (my_iid_repos.max_used >= myIID4x));
 
-        assertion(-500000, (iid_tables ? neigh_rep->tot_used > IID_MIN_USABLE : neigh_rep->neighIID4neigh >= IID_MIN_USABLE));
-
+        assertion(-500000, (iid_tables ? neigh_rep->neighIID4neigh == IID_RSVD_UNUSED : neigh_rep->tot_used == IID_MIN_USABLE));
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
 
@@ -380,8 +386,6 @@ IDM_T iid_set_neighIID4x(struct iid_repos *neigh_rep, IID_T neighIID4x, IID_T my
 
 //                        EXITERROR(-500701, (0));
 
-                        neigh_rep->neighIID4neigh = IID_RSVD_UNUSED;
-                        
                         return FAILURE;
                 }
 
@@ -417,7 +421,7 @@ void iid_free_neighIID4x_by_myIID4x( struct iid_repos *rep, IID_T myIID4x)
         TRACE_FUNCTION_CALL;
         assertion(-500282, (rep != &my_iid_repos));
         assertion(-500328, (myIID4x >= IID_MIN_USABLE));
-        assertion(-500000, (iid_tables ? rep->tot_used > IID_MIN_USABLE : rep->neighIID4neigh >= IID_MIN_USABLE));
+        assertion(-500000, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
 
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];

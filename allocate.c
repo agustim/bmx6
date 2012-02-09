@@ -279,6 +279,9 @@ void _debugFree(void *memoryParameter, int tag)
         struct chunkHeader *chunkHeader =
                 (struct chunkHeader *) (((unsigned char *) memoryParameter) - sizeof (struct chunkHeader));
 
+        if(!memoryParameter)
+                return;
+
         if (chunkHeader->magicNumberHeader != MAGIC_NUMBER_HEADER)
 	{
 		dbgf_sys(DBGT_ERR,

@@ -157,8 +157,8 @@
 #define FRAME_TYPE_DESC_ADV        15
 
 
-#define FRAME_TYPE_HASH_REQ    18  // Hash-for-description-of-OG-ID requests
-#define FRAME_TYPE_HASH_ADV    19  // Hash-for-description-of-OG-ID advertisements
+#define FRAME_TYPE_DHASH_REQ    18  // Hash-for-description-of-OG-ID requests
+#define FRAME_TYPE_DHASH_ADV    19  // Hash-for-description-of-OG-ID advertisements
 
 //#define FRAME_TYPE_HELLO_REPS  21  // most-simple BMX-NG hello (nb-discovery) replies
 

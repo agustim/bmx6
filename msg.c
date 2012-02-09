@@ -514,7 +514,7 @@ void schedule_tx_task(struct link_dev_node *dest_lndev, uint16_t frame_type, int
 
 
         dbgf((( /* debug interesting frame types: */ frame_type == FRAME_TYPE_PROBLEM_ADV ||
-                frame_type == FRAME_TYPE_HASH_REQ || frame_type == FRAME_TYPE_HASH_ADV ||
+                frame_type == FRAME_TYPE_DHASH_REQ || frame_type == FRAME_TYPE_DHASH_ADV ||
                 frame_type == FRAME_TYPE_DESC_DHASH_REQ ||
                 frame_type == FRAME_TYPE_DESC_IID_REQ ||frame_type == FRAME_TYPE_DESC_ADV ||
                 frame_type == FRAME_TYPE_LINK_REQ_ADV || frame_type == FRAME_TYPE_LINK_ADV ||
@@ -998,7 +998,10 @@ void schedule_or_purge_ogm_aggregations(IDM_T purge_all)
 
                         for (d = 0; (lndev_arr[d]); d++) {
 
-                                schedule_tx_task((lndev_arr[d]), FRAME_TYPE_OGM_IID_ADV, oan->ogm_msgs_bytes + oan->ogm_dest_bytes, 0, oan->sqn, 0, NULL);
+                                if (iid_tables)
+                                        schedule_tx_task((lndev_arr[d]), FRAME_TYPE_OGM_IID_ADV, oan->ogm_msgs_bytes + oan->ogm_dest_bytes, 0, oan->sqn, 0, NULL);
+                                else
+                                        schedule_tx_task((lndev_arr[d]), FRAME_TYPE_OGM_DHASH_ADV, oan->ogm_msgs_bytes + oan->ogm_dest_bytes, 0, oan->sqn, 0, NULL);
 
                         }
 
@@ -1101,11 +1104,11 @@ int32_t tx_msg_dhash_or_description_request(struct tx_frame_iterator *it)
                 dhn ? "ALREADY RESOLVED (req cancelled)" : ttn->task.link->local->neigh ? "ABOUT NB HIMSELF" : "ABOUT SOMEBODY");
 
         assertion(-500000, (it->frame_type == ttn->task.type));
-        assertion(-500000, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_HASH_REQ));
+        assertion(-500000, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_DHASH_REQ));
         assertion(-500000, XOR(!is_zero(&ttn->task.dhash, sizeof (ttn->task.dhash)), neighIID4x >= IID_MIN_USABLE));
         assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DESC_DHASH_REQ, neighIID4x == IID_RSVD_UNUSED));
         assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DESC_IID_REQ, neighIID4x >= IID_MIN_USABLE));
-        assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_HASH_REQ, neighIID4x >= IID_MIN_USABLE));
+        assertion(-500000, IMPLIES(it->frame_type == FRAME_TYPE_DHASH_REQ, neighIID4x >= IID_MIN_USABLE));
 //        assertion(-500853, (sizeof ( struct msg_dhash_or_description_by_iid_request) == sizeof ( struct msg_dhash_or_description_by_iid_request)));
         assertion(-500855, (tx_iterator_cache_data_space_pref(it) >= handl->min_msg_size));
         assertion(-500856, (ttn->task.link));
@@ -2066,8 +2069,8 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
                                 continue;
 
                         if (!dhn) {
-                                dbgf_track(DBGT_INFO, "schedule frame_type=%d", FRAME_TYPE_HASH_REQ);
-                                schedule_tx_task(local->best_tp_lndev, FRAME_TYPE_HASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, neighIID4x, 0, NULL);
+                                dbgf_track(DBGT_INFO, "schedule frame_type=%d", FRAME_TYPE_DHASH_REQ);
+                                schedule_tx_task(local->best_tp_lndev, FRAME_TYPE_DHASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, neighIID4x, 0, NULL);
                         }
 
 
@@ -2373,7 +2376,7 @@ int32_t rx_msg_dhash_adv( struct rx_frame_iterator *it)
 
 
                 if (!dhn) {
-                        if (iid_tables && is_transmitter_adv)
+                        if (iid_tables /*&& is_transmitter_adv*/)
                                 schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DESC_IID_REQ, SCHEDULE_MIN_MSG_SIZE, 0, neighIID4x, 0, NULL);
                         else if (!iid_tables)
                                 schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DESC_DHASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, 0, 0, &adv->dhash);
@@ -2459,13 +2462,13 @@ int32_t rx_msg_dhash_or_description_request(struct rx_frame_iterator *it)
 {
         TRACE_FUNCTION_CALL;
 //        assertion( -500365 , (sizeof( struct msg_dhash_or_description_by_iid_request ) == sizeof( struct msg_dhash_or_description_by_iid_request)));
-        assertion(-500000, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_HASH_REQ));
+        assertion(-500000, (it->frame_type == FRAME_TYPE_DESC_DHASH_REQ || it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_DHASH_REQ));
         struct packet_buff *pb = it->pb;
         struct hdr_dhash_or_description_request *hdr = (struct hdr_dhash_or_description_request*) (it->frame_data);
         struct dhash_node *dhn;
         struct orig_node *on;
 
-        if (hdr->destination_local_id != my_local_id || (!iid_tables && it->frame_type == FRAME_TYPE_HASH_REQ))
+        if (hdr->destination_local_id != my_local_id /*|| (!iid_tables && it->frame_type == FRAME_TYPE_HASH_REQ)*/)
                 return it->handl->min_msg_size;
 
         //TODO: consider that the received local_id might be a duplicate:
@@ -2509,7 +2512,7 @@ int32_t rx_msg_dhash_or_description_request(struct rx_frame_iterator *it)
         if (it->frame_type == FRAME_TYPE_DESC_IID_REQ || it->frame_type == FRAME_TYPE_DESC_DHASH_REQ)
                 schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DESC_ADV, desc_len, dhn->myIID4orig, 0, 0, NULL);
         else
-                schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_HASH_ADV, SCHEDULE_MIN_MSG_SIZE, dhn->myIID4orig, 0, 0, NULL);
+                schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DHASH_ADV, SCHEDULE_MIN_MSG_SIZE, dhn->myIID4orig, 0, 0, NULL);
 
 
 
@@ -2770,9 +2773,9 @@ IDM_T rx_frames(struct packet_buff *pb)
 
         if (!is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, pb->i.transmittersIID, NULL)) {
 
-                dbgf_track(DBGT_INFO, "schedule frame_type=%d", FRAME_TYPE_HASH_REQ);
+                dbgf_track(DBGT_INFO, "schedule frame_type=%d", FRAME_TYPE_DHASH_REQ);
 
-                schedule_tx_task(local->best_tp_lndev, FRAME_TYPE_HASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, pb->i.transmittersIID, 0, NULL);
+                schedule_tx_task(local->best_tp_lndev, FRAME_TYPE_DHASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, pb->i.transmittersIID, 0, NULL);
         }
 
         if (msg_dev_req_enabled && UXX_LT(DEVADV_SQN_MAX, local->dev_adv_sqn, local->link_adv_dev_sqn_ref)) {
@@ -3765,7 +3768,7 @@ int32_t init_msg( void )
         handl.tx_task_interval_min = DEF_TX_DHASH0_REQ_TO;
         handl.tx_msg_handler = tx_msg_dhash_or_description_request;
         handl.rx_msg_handler = rx_msg_dhash_or_description_request;
-        register_frame_handler(packet_frame_handler, FRAME_TYPE_HASH_REQ, &handl);
+        register_frame_handler(packet_frame_handler, FRAME_TYPE_DHASH_REQ, &handl);
 
         handl.name = "DHASH_ADV";
         handl.is_advertisement = 1;
@@ -3775,7 +3778,7 @@ int32_t init_msg( void )
         handl.tx_task_interval_min = DEF_TX_DHASH0_ADV_TO;
         handl.tx_msg_handler = tx_msg_dhash_adv;
         handl.rx_msg_handler = rx_msg_dhash_adv;
-        register_frame_handler(packet_frame_handler, FRAME_TYPE_HASH_ADV, &handl);
+        register_frame_handler(packet_frame_handler, FRAME_TYPE_DHASH_ADV, &handl);
 
 
 
