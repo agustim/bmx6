@@ -26,7 +26,7 @@
 #define CODE_CATEGORY_NAME "iid"
 
 struct iid_repos my_iid_repos = { 0,0,0,0,0,0, {NULL} };
-int32_t iid_tables = DEF_USE_IID;
+int32_t iid_tables = DEF_IID_TABLES;
 
 int8_t iid_extend_repos(struct iid_repos *rep)
 {
@@ -465,10 +465,19 @@ void iid_free_neighIIDrepos_from_myIID4x( struct iid_repos *neigh_rep, IID_T fre
 static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt, struct opt_parent *patch, struct ctrl_node *cn )
 {
 
+        static int32_t prev_iid_tables = DEF_IID_TABLES;
+
         if (cmd == OPT_APPLY) {
 
-                assertion(-501421, (iid_tables == strtol(patch->val, NULL, 10)));
+                //assertion(-501421, (iid_tables == strtol(patch->val, NULL, 10)));
                 //iid_tables = !iid_tables;
+                dbgf_track(DBGT_INFO, "(new) iid_tables=%d prev_iid_tables=%d", iid_tables, prev_iid_tables);
+
+                if (prev_iid_tables == iid_tables)
+                        return SUCCESS;
+                else
+                        prev_iid_tables = iid_tables;
+
 
                 struct avl_node *an;
                 struct neigh_node *neigh;
@@ -526,7 +535,7 @@ static struct opt_type iid_options[]=
 {
 //        ord parent long_name          shrt Attributes				*ival		min		max		default		*func,*syntax,*help
 
-	{ODI,0,"iidTables",  	        0, 5,0,A_PS1,A_ADM,A_DYI,A_CFA,A_ANY,	&iid_tables,	0,	        1,	        1,0,	        opt_iid_tables,
+	{ODI,0,ARG_IID_TABLES, 	        0, 5,0,A_PS1,A_ADM,A_DYI,A_CFA,A_ANY,	&iid_tables,	MIN_IID_TABLES,    MAX_IID_TABLES,    DEF_IID_TABLES,0,  opt_iid_tables,
 			ARG_VALUE_FORM,	"enable/disable support for distributed IID tables "}
 
 };

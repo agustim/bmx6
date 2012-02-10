@@ -37,10 +37,10 @@
 
 
 
-#define MIN_USE_IID 0
-#define MAX_USE_IID 1
-#define DEF_USE_IID 1
-#define ARG_USE_IID "individualIdentifiers"
+#define MIN_IID_TABLES 0
+#define MAX_IID_TABLES 1
+#define DEF_IID_TABLES 1
+#define ARG_IID_TABLES "iidTables"
 extern int32_t iid_tables;
 
 
