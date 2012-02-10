@@ -2433,7 +2433,7 @@ int32_t rx_frame_description_advs(struct rx_frame_iterator *it)
                 assertion(-500692, IMPLIES(dhn && neighIID4x == pb->i.transmittersIID, is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, pb->i.transmittersIID, &dhash)));
 
                 if (desc_adv_tx_unsolicited && dhn && dhn->on->updated_timestamp == bmx_time &&
-                        is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, pb->i.transmittersIID, &dhash)) {
+                        is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, pb->i.transmittersIID, NULL)) {
 
                         struct link_dev_node **lndev_arr = lndevs_get_best_tp(pb->i.link->local);
                         int d;
