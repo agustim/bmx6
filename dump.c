@@ -331,10 +331,10 @@ int32_t opt_traffic_statistics(uint8_t cmd, uint8_t _save, struct opt_type *opt,
                 struct dev_node *dev;
                 struct avl_node *an = NULL;
 
-                dbg_printf(cn, "traffic statistics [B/%dsec]:       last second        |    weighted averages  \n",
+                dbg_printf(cn, "traffic statistics [B/%dsec]:       last second         |      weighted averages  \n",
                         DUMP_STATISTIC_PERIOD / 1000);
 
-                dbg_printf(cn, "%20s ( %% )     in ( %% )    out ( %% )  |   all ( %% )     in ( %% )    out ( %% )\n"," ");
+                dbg_printf(cn, "%21s ( %% )     in ( %% )    out ( %% )  |   all ( %% )     in ( %% )    out ( %% )\n"," ");
 
                 if (!strcmp(patch->val, ARG_DUMP_ALL) || !strcmp(patch->val, ARG_DUMP_SUMMARY))
                         dbg_traffic_statistics(&dump_all, cn, ARG_DUMP_ALL);

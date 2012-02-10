@@ -697,7 +697,7 @@ void create_ogm_aggregation(void)
                 IID_NODE_T *dhn = my_iid_repos.arr.node[curr_iid];
                 struct orig_node *on = dhn ? dhn->on : NULL;
 
-                assertion(-501400, (on->dhn->myIID4orig == curr_iid));
+                assertion(-501400, IMPLIES(on, on->dhn->myIID4orig == curr_iid));
 
                 if (on && UXX_GT(OGM_SQN_MASK, on->ogmSqn_next, on->ogmSqn_send)) {
 
