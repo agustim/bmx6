@@ -87,7 +87,8 @@ void iid_purge_repos( struct iid_repos *rep, TIME_T timeout )
 
                                 struct iid_ref *ref = &rep->arr.ref[iid];
 
-                                if (((uint16_t) (((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec) >= timeout / 1000))
+                                if (ref->myIID4x >= IID_MIN_USABLE &&
+                                        ((uint16_t) (((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec) >= timeout / 1000))
                                         iid_free(rep, iid);
 
                         }
