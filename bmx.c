@@ -168,7 +168,7 @@ struct neigh_node *is_iid_or_dhash_of_transmitting_and_described_neigh(struct li
                 assertion(-500938, (neigh->dhn->neigh == neigh));
                 assertion(-501408, IMPLIES(iid >= IID_MIN_USABLE, neigh->dhn == iid_get_node_by_neighIID4x(neigh, iid, YES/*verbose*/)));
 
-                if (IMPLIES(dhash, !memcmp(&neigh->dhn->dhash, dhash, sizeof (*dhash)))) {
+                if (dhash && memcmp(&neigh->dhn->dhash, dhash, sizeof (*dhash))) {
                         dbgf_sys(DBGT_ERR, "iid=%d, stored dhash=%s and given dhash=%s do not match",
                                 iid, memAsHexString(&neigh->dhn->dhash, sizeof (*dhash)), memAsHexString(dhash, sizeof (*dhash)));
                         ASSERTION(-501409, 0);
