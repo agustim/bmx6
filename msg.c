@@ -2248,6 +2248,7 @@ struct dhash_node *process_dhash_description_neighIID4x
 
         if (is_transmitters_iid && !memcmp(dhash, &(self->dhn->dhash), sizeof(*dhash))) { // cant be transmitters' and myselfs'
 
+                dbgf_sys(DBGT_ERR, "transmitterIID=%d claiming to have my hash=%s", neighIID4x, memAsHexString(dhash, sizeof (*dhash)));
                 return DHASH_NODE_FAILURE;
 
         } else if (avl_find(&dhash_invalid_tree, dhash)) {
@@ -2260,7 +2261,7 @@ struct dhash_node *process_dhash_description_neighIID4x
                 if (is_transmitters_iid) {
                         // is about the transmitter:
 
-                        if ((neigh = update_local_neigh(pb, orig_dhn)))
+                        if (!(neigh = update_local_neigh(pb, orig_dhn)))
                                 return DHASH_NODE_FAILURE;
 
                         orig_dhn->referred_by_me_timestamp = bmx_time;
@@ -2312,7 +2313,7 @@ struct dhash_node *process_dhash_description_neighIID4x
 
                         if ((orig_dhn = process_description(pb, cache, dhash))) {
 
-                                if ((neigh = update_local_neigh(pb, orig_dhn)))
+                                if (!(neigh = update_local_neigh(pb, orig_dhn)))
                                         return DHASH_NODE_FAILURE;
 
                                 orig_dhn->referred_by_me_timestamp = bmx_time;
@@ -2359,7 +2360,7 @@ int32_t rx_msg_dhash_adv( struct rx_frame_iterator *it)
         IDM_T is_transmitter_adv = (neighIID4x == pb->i.transmittersIID);
         struct dhash_node *dhn;
 
-        dbgf_track(DBGT_INFO, "via NB: %s", pb->i.llip_str);
+        dbgf_track(DBGT_INFO, "via NB: %s transmitterIID4x=%d ", pb->i.llip_str, neighIID4x);
 
         if (neighIID4x < IID_MIN_USABLE)
                 return FAILURE;
