@@ -2043,12 +2043,12 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
                 if (is_ogm_iid_adv) {
 
-                        struct msg_ogm_iid_adv *ogm = (struct msg_ogm_iid_adv*) (it->msg + ogm_dst_field_size);
+                        struct msg_ogm_iid_adv *ogm = &(((struct msg_ogm_iid_adv*) (it->msg + ogm_dst_field_size))[m]);
                         uint16_t offset = ((ntohs(ogm[m].mix) >> OGM_IIDOFFST_BIT_POS) & OGM_IIDOFFST_MASK);
 
                         if (offset == OGM_IID_RSVD_JUMP) {
 
-                                uint16_t absolute = ntohs(ogm[m].u.transmitterIIDabsolute);
+                                uint16_t absolute = ntohs(ogm->u.transmitterIIDabsolute);
 
                                 dbgf_all(DBGT_INFO, " IID jump from %d to %d (msg=%d)", neighIID4x, absolute, m);
                                 neighIID4x = absolute;
@@ -2078,25 +2078,25 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
 
 
-                        ogm_sqn = ntohs(ogm[m].u.ogm_sqn);
+                        ogm_sqn = ntohs(ogm->u.ogm_sqn);
 
-                        OGM_MIX_T mix = ntohs(ogm[m].mix);
+                        OGM_MIX_T mix = ntohs(ogm->mix);
 
                         exp = ((mix >> OGM_EXPONENT_BIT_POS) & OGM_EXPONENT_MASK);
                         mant = ((mix >> OGM_MANTISSA_BIT_POS) & OGM_MANTISSA_MASK);
 
                 } else {
-                        struct msg_ogm_dhash_adv *ogm = (struct msg_ogm_dhash_adv*) (it->msg + ogm_dst_field_size);
+                        struct msg_ogm_dhash_adv *ogm = &(((struct msg_ogm_dhash_adv*) (it->msg + ogm_dst_field_size))[m]);
 
                         dhn = avl_find_item(&dhash_tree, &ogm->dhash);
 
                         if (only_process_sender_but_refresh_all_iids && dhn != pb->i.link->local->neigh->dhn)
                                 continue;
 
-                        ogm_sqn = ntohs(ogm[m].ogm_sqn);
+                        ogm_sqn = ntohs(ogm->ogm_sqn);
 
-                        exp = ogm[m].metric_exp;
-                        mant = ogm[m].metric_mant;
+                        exp = ogm->metric_exp;
+                        mant = ogm->metric_mant;
                 }
 
 
