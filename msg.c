@@ -2090,7 +2090,7 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
                         dhn = avl_find_item(&dhash_tree, &ogm->dhash);
 
-                        if (only_process_sender_but_refresh_all_iids &&  dhn == pb->i.link->local->neigh->dhn )
+                        if (only_process_sender_but_refresh_all_iids && dhn != pb->i.link->local->neigh->dhn)
                                 continue;
 
                         ogm_sqn = ntohs(ogm[m].ogm_sqn);
