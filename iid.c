@@ -467,8 +467,8 @@ static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt
 
         if (cmd == OPT_APPLY) {
 
-                assertion(-501421, (iid_tables != strtol(patch->val, NULL, 10)));
-                iid_tables = !iid_tables;
+                assertion(-501421, (iid_tables == strtol(patch->val, NULL, 10)));
+                //iid_tables = !iid_tables;
 
                 struct avl_node *an;
                 struct neigh_node *neigh;

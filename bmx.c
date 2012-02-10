@@ -482,11 +482,11 @@ void purge_orig_router(struct orig_node *only_orig, struct link_dev_node *only_l
                         if (only_lndev && (rt->path_lndev_best != only_lndev) && (on->curr_rt_lndev != only_lndev))
                                 continue;
 
-                        dbgf_track(DBGT_INFO, "only_orig=%s only_lndev=%s,%s only_useless=%d purging metric=%ju router=%X (%s)",
+                        dbgf_track(DBGT_INFO, "only_orig=%s only_lndev=%s,%s only_useless=%d purging metric=%ju min_routable=%ju router=%X (%s)",
                                 only_orig ? globalIdAsString(&only_orig->global_id) : DBG_NIL,
                                 only_lndev ? ipFAsStr(&only_lndev->key.link->link_ip):DBG_NIL,
                                 only_lndev ? only_lndev->key.dev->label_cfg.str : DBG_NIL,
-                                only_useless,rt->mr.umetric,
+                                only_useless,rt->mr.umetric, UMETRIC_ROUTABLE,
                                 ntohl(rt->local_key->local_id),
                                 rt->local_key && rt->local_key->neigh ? globalIdAsString(&rt->local_key->neigh->dhn->on->global_id) : "???");
 
