@@ -158,7 +158,6 @@ struct neigh_node *is_iid_or_dhash_of_transmitting_and_described_neigh(struct li
         assertion(-501404, IMPLIES(neigh, neigh->dhn->on));
         assertion(-501405, IMPLIES(neigh, neigh->dhn->neigh == neigh));
 
-        assertion(-501406, IMPLIES(iid_tables, iid >= IID_MIN_USABLE));
         assertion(-501407, (iid >= IID_MIN_USABLE || dhash));
 
         if (neigh && (
