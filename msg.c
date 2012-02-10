@@ -2276,7 +2276,7 @@ struct dhash_node *process_dhash_description_neighIID4x
 
                 } else if (neigh) {
                         // received via a known neighbor, and is NOT about the transmitter:
-                        assertion(-501434, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, IID_RSVD_UNUSED, dhash)));
+                        //assertion(-501434, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, IID_RSVD_UNUSED, dhash)));
 
                         if (orig_dhn == self->dhn) {
                                 // is about myself:
@@ -2363,7 +2363,7 @@ int32_t rx_msg_dhash_adv( struct rx_frame_iterator *it)
         IDM_T is_transmitter_adv = (neighIID4x == pb->i.transmittersIID);
         struct dhash_node *dhn;
 
-        dbgf_track(DBGT_INFO, "via NB: %s transmitterIID4x=%d ", pb->i.llip_str, neighIID4x);
+        dbgf_track(DBGT_INFO, "via NB: %s transmitterIID4x=%d dhash=%s", pb->i.llip_str, neighIID4x, memAsHexString(&adv->dhash, sizeof(adv->dhash)));
 
         if (neighIID4x < IID_MIN_USABLE)
                 return FAILURE;
