@@ -1979,7 +1979,8 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
 
 
-        dbgf_all(DBGT_INFO, " ");
+        dbgf_all(DBGT_INFO, "ogm_dst_field_size=%d is_ogm_iid_adv=%d frame_msgs_length=%d msgs=%d local->orig_routes=%d ack_sender=%d aggregation_sqn=%d",
+                ogm_dst_field_size, is_ogm_iid_adv, it->frame_msgs_length, msgs, local->orig_routes, ack_sender, aggregation_sqn);
 
 
         if (!(neigh->ogm_new_aggregation_rcvd || neigh->ogm_aggregation_cleard_max /*ever used*/) ||
@@ -2049,7 +2050,7 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
                                 uint16_t absolute = ntohs(ogm[m].u.transmitterIIDabsolute);
 
-                                dbgf_all(DBGT_INFO, " IID jump from %d to %d", neighIID4x, absolute);
+                                dbgf_all(DBGT_INFO, " IID jump from %d to %d (msg=%d)", neighIID4x, absolute, m);
                                 neighIID4x = absolute;
 
                                 if ((m + 1) >= msgs)
@@ -2059,9 +2060,11 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
                         } else {
 
-                                dbgf_all(DBGT_INFO, " IID offset from %d to %d", neighIID4x, neighIID4x + offset);
+                                dbgf_all(DBGT_INFO, " IID offset from %d to %d (msg=%d)", neighIID4x, neighIID4x + offset, m);
                                 neighIID4x += offset;
                         }
+
+
 
                         dhn = iid_get_node_by_neighIID4x(neigh, neighIID4x, !only_process_sender_but_refresh_all_iids/*verbose*/);
 
