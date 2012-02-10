@@ -489,7 +489,23 @@ static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt
 
                         struct iid_repos *rep = &neigh->neighIID4x_repos;
 
-                        if (!iid_tables) { //then purge all distributed iid tables and save neighIID4neigh
+                        if (iid_tables) {
+
+                                assertion(-501423, (rep->arr_size == 0));
+                                assertion(-501424, (rep->neighIID4neigh >= IID_MIN_USABLE));
+                                assertion(-501425, (neigh->dhn->myIID4orig >= IID_MIN_USABLE));
+
+                                IID_T neighIID4neigh = rep->neighIID4neigh;
+                                uint16_t referred_by_neigh_timestamp_sec = rep->referred_by_neigh_timestamp_sec;
+
+                                rep->referred_by_neigh_timestamp_sec = 0;
+                                rep->neighIID4neigh = IID_RSVD_UNUSED;
+                                iid_set_neighIID4x(rep, neighIID4neigh, neigh->dhn->myIID4orig);
+                                rep->arr.ref[neighIID4neigh].referred_by_neigh_timestamp_sec = referred_by_neigh_timestamp_sec;
+
+                        } else {
+
+                                //then purge all distributed iid tables and save neighIID4neigh
 
                                 IID_T neighIID4neigh = IID_RSVD_UNUSED;
                                 IID_T neighIID4x = IID_RSVD_UNUSED;
@@ -513,17 +529,6 @@ static int32_t opt_iid_tables ( uint8_t cmd, uint8_t _save, struct opt_type *opt
 
                                 rep->neighIID4neigh = neighIID4neigh;
                                 rep->referred_by_neigh_timestamp_sec = referred_by_neigh_timestamp_sec;
-
-                        } else {
-
-                                assertion(-501423, (rep->arr_size == 0));
-                                assertion(-501424, (rep->neighIID4neigh >= IID_MIN_USABLE));
-                                assertion(-501425, (neigh->dhn->myIID4orig >= IID_MIN_USABLE));
-
-                                iid_set_neighIID4x(rep, rep->neighIID4neigh, neigh->dhn->myIID4orig);
-                                rep->arr.ref[rep->neighIID4neigh].referred_by_neigh_timestamp_sec = rep->referred_by_neigh_timestamp_sec;
-                                rep->referred_by_neigh_timestamp_sec = 0;
-                                rep->neighIID4neigh = IID_RSVD_UNUSED;
                         }
                 }
         }
