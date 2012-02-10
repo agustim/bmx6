@@ -2269,7 +2269,7 @@ struct dhash_node *process_dhash_description_neighIID4x
                         if (iid_set_neighIID4x(&neigh->neighIID4x_repos, neighIID4x, orig_dhn->myIID4orig) == FAILURE)
                                 return DHASH_NODE_FAILURE;
 
-                        assertion(-500968, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, pb->i.transmittersIID, dhash)));
+                        assertion(-500968, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, neighIID4x, dhash)));
 
                 } else if (neigh) {
                         // received via a known neighbor, and is NOT about the transmitter:
@@ -2321,7 +2321,7 @@ struct dhash_node *process_dhash_description_neighIID4x
                                 if (iid_set_neighIID4x(&neigh->neighIID4x_repos, neighIID4x, orig_dhn->myIID4orig) == FAILURE)
                                         return DHASH_NODE_FAILURE;
 
-                                assertion(-500969, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, pb->i.transmittersIID, dhash)));
+                                assertion(-500969, (is_iid_or_dhash_of_transmitting_and_described_neigh(pb->i.link, neighIID4x, dhash)));
 
                         }
 
