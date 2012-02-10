@@ -180,7 +180,7 @@ IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *neigh, IID_T neighIID4x, IDM
 
         struct iid_repos *rep = &neigh->neighIID4x_repos;
 
-        assertion(-501412, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
+        assertion(-501412, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used <= IID_MIN_USABLE));
 
         if (!iid_tables) {
 
@@ -341,7 +341,7 @@ IDM_T iid_set_neighIID4x(struct iid_repos *rep, IID_T neighIID4x, IID_T myIID4x)
         assertion(-500384, (rep && rep != &my_iid_repos));
         assertion(-500245, (my_iid_repos.max_used >= myIID4x));
 
-        assertion(-501418, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
+        assertion(-501418, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used <= IID_MIN_USABLE));
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
 
@@ -422,7 +422,7 @@ void iid_free_neighIIDrepos_from_myIID4x( struct iid_repos *neigh_rep, IID_T fre
         TRACE_FUNCTION_CALL;
         assertion(-500282, (neigh_rep != &my_iid_repos));
         assertion(-500328, (free_myIID4x >= IID_MIN_USABLE));
-        assertion(-501419, (iid_tables ? neigh_rep->neighIID4neigh == IID_RSVD_UNUSED : neigh_rep->tot_used == IID_MIN_USABLE));
+        assertion(-501419, (iid_tables ? neigh_rep->neighIID4neigh == IID_RSVD_UNUSED : neigh_rep->tot_used <= IID_MIN_USABLE));
 
         assertion(-501444, (((my_iid_repos.arr.node[free_myIID4x]))));
         assertion(-501445, (!(my_iid_repos.arr.node[free_myIID4x]->on)));
