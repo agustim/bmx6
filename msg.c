@@ -3851,7 +3851,7 @@ int32_t init_msg( void )
         handl.rx_requires_described_neigh = 1;
         handl.data_header_size = sizeof (struct hdr_ogm_adv);
         handl.min_msg_size = sizeof (struct msg_ogm_dhash_adv);
-        handl.fixed_msg_size = 1;
+        handl.fixed_msg_size = 0;
         handl.tx_frame_handler = tx_frame_ogm_advs;
         handl.rx_frame_handler = rx_frame_ogm_advs;
         register_frame_handler(packet_frame_handler, FRAME_TYPE_OGM_DHASH_ADV, &handl);
