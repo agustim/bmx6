@@ -2044,7 +2044,8 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
                 if (is_ogm_iid_adv) {
 
                         struct msg_ogm_iid_adv *ogm = &(((struct msg_ogm_iid_adv*) (it->msg + ogm_dst_field_size))[m]);
-                        uint16_t offset = ((ntohs(ogm[m].mix) >> OGM_IIDOFFST_BIT_POS) & OGM_IIDOFFST_MASK);
+                        OGM_MIX_T mix = ntohs(ogm->mix);
+                        uint16_t offset = ((mix >> OGM_IIDOFFST_BIT_POS) & OGM_IIDOFFST_MASK);
 
                         if (offset == OGM_IID_RSVD_JUMP) {
 
@@ -2071,16 +2072,10 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
                         if (only_process_sender_but_refresh_all_iids && neighIID4x != pb->i.transmittersIID)
                                 continue;
 
-                        if (!dhn) {
-                                dbgf_track(DBGT_INFO, "schedule frame_type=%d", FRAME_TYPE_DHASH_REQ);
+                        if (!dhn)
                                 schedule_tx_task(local->best_tp_lndev, FRAME_TYPE_DHASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, neighIID4x, 0, NULL);
-                        }
-
-
 
                         ogm_sqn = ntohs(ogm->u.ogm_sqn);
-
-                        OGM_MIX_T mix = ntohs(ogm->mix);
 
                         exp = ((mix >> OGM_EXPONENT_BIT_POS) & OGM_EXPONENT_MASK);
                         mant = ((mix >> OGM_MANTISSA_BIT_POS) & OGM_MANTISSA_MASK);
@@ -2092,6 +2087,9 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
                         if (only_process_sender_but_refresh_all_iids && dhn != pb->i.link->local->neigh->dhn)
                                 continue;
+
+                        if (!dhn)
+                                schedule_tx_task(local->best_tp_lndev, FRAME_TYPE_DESC_DHASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, 0, 0, &ogm->dhash);
 
                         ogm_sqn = ntohs(ogm->ogm_sqn);
 
