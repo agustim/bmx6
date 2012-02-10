@@ -736,7 +736,7 @@ void create_ogm_aggregation(void)
                                 prev_ogm_iid = curr_iid;
 
                         } else {
-                                create_ogm(on, prev_ogm_iid, &msgs[ogm_msg]);
+                                create_ogm(on, prev_ogm_iid, &(((struct msg_ogm_dhash_adv*) msgs)[ogm_msg]));
 
                         }
 
@@ -1097,7 +1097,7 @@ int32_t tx_msg_dhash_or_description_request(struct tx_frame_iterator *it)
         }
 
 
-        dbgf_track(DBGT_INFO, "%s dev=%s to local_id=%X dev_idx=0x%X iterations=%d time=%d requesting neighIID4x=%d dhash=%s usi_iid=%d %s",
+        dbgf_track(DBGT_INFO, "%s dev=%s to local_id=%X dev_idx=0x%X iterations=%d time=%d requesting neighIID4x=%d dhash=%s iid_tables=%d %s",
                 handl->name, ttn->task.dev->label_cfg.str, ntohl(ttn->task.link->key.local_id),
                 ttn->task.link->key.dev_idx, ttn->tx_iterations, ttn->considered_ts,
                 neighIID4x, memAsHexString(&ttn->task.dhash, sizeof (ttn->task.dhash)), iid_tables,
