@@ -167,7 +167,7 @@ struct neigh_node *is_iid_or_dhash_of_transmitting_and_described_neigh(struct li
 
                 assertion(-500938, (neigh->dhn->neigh == neigh));
                 assertion(-501408, IMPLIES(iid >= IID_MIN_USABLE, neigh->dhn == iid_get_node_by_neighIID4x(neigh, iid, YES/*verbose*/)));
-                assertion(-501409, IMPLIES(dhash, memcmp(&neigh->dhn->dhash, dhash, sizeof (struct description_hash))));
+                assertion(-501409, IMPLIES(dhash, !memcmp(&neigh->dhn->dhash, dhash, sizeof (struct description_hash))));
 
                 return neigh;
         }
