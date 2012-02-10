@@ -791,7 +791,7 @@ void create_ogm_aggregation(void)
 
         list_add_tail(&ogm_aggreg_list, &oan->list);
 
-        dbgf_all( DBGT_INFO, "ogm_use_iid=%1 aggregation_sqn=%d ogms=%d jumps=%d destinations=%d",
+        dbgf_all( DBGT_INFO, "ogm_use_iid=%d aggregation_sqn=%d ogms=%d jumps=%d destinations=%d",
                 iid_tables, oan->sqn, ogm_msg, ogm_iid_jumps, destinations);
 
         return;
@@ -1802,8 +1802,8 @@ int32_t tx_frame_ogm_advs(struct tx_frame_iterator *it)
 
         } else {
 
-                dbgf_all(DBGT_INFO, "aggregation_sqn=%d ogm_iid_adv=%d dest_bytes=%d attempt=%d",
-                        oan->sqn, iid_tables, oan->ogm_dest_bytes, oan->tx_attempt);
+                dbgf_all(DBGT_INFO, "aggregation_sqn=%d iid_tables=%d frame_msgs_length=%d dest_bytes=%d attempt=%d",
+                        oan->sqn, iid_tables, ttn->frame_msgs_length, oan->ogm_dest_bytes, oan->tx_attempt);
 
 //                uint16_t msgs_length = (oan->aggregated_msgs * sizeof (struct msg_ogm_iid_adv));
                 struct hdr_ogm_adv* hdr = ((struct hdr_ogm_adv*) tx_iterator_cache_hdr_ptr(it));
@@ -2031,6 +2031,7 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
 
         uint16_t m;
+        IID_T neighIID4x = 0;
 
         for (m = 0; m < msgs; m++) {
 
@@ -2042,7 +2043,6 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
                 if (is_ogm_iid_adv) {
 
-                        IID_T neighIID4x = 0;
                         struct msg_ogm_iid_adv *ogm = (struct msg_ogm_iid_adv*) (it->msg + ogm_dst_field_size);
                         uint16_t offset = ((ntohs(ogm[m].mix) >> OGM_IIDOFFST_BIT_POS) & OGM_IIDOFFST_MASK);
 
