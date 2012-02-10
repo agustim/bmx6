@@ -204,16 +204,20 @@ struct dhash_node* create_dhash_node(struct description_hash *dhash, struct orig
 }
 
 STATIC_FUNC
-void purge_dhash_iid(struct dhash_node *dhn)
+void free_dhash_iid_from_neighIIDrepositories(struct dhash_node *dhn)
 {
         TRACE_FUNCTION_CALL;
         struct avl_node *an;
         struct neigh_node *neigh;
 
+        assertion(-501440, (!dhn->on));
+        assertion(-501441, (!dhn->neigh));
+        assertion(-501442, (dhn == my_iid_repos.arr.node[dhn->myIID4orig]));
+
         //reset all neigh_node->oid_repos[x]=dhn->mid4o entries
         for (an = NULL; (neigh = avl_iterate_item(&neigh_tree, &an));) {
 
-                iid_free_neighIID4x_by_myIID4x(&neigh->neighIID4x_repos, dhn->myIID4orig);
+                iid_free_neighIIDrepos_from_myIID4x(&neigh->neighIID4x_repos, dhn->myIID4orig);
 
         }
 }
@@ -235,9 +239,9 @@ STATIC_FUNC
                         plist_del_head(&dhash_invalid_plist);
                         avl_remove(&dhash_invalid_tree, &dhn->dhash, -300194);
 
-                        iid_free(&my_iid_repos, dhn->myIID4orig);
+                        free_dhash_iid_from_neighIIDrepositories(dhn);
 
-                        purge_dhash_iid(dhn);
+                        iid_free(&my_iid_repos, dhn->myIID4orig);
 
                         debugFree(dhn, -300112);
 
@@ -262,7 +266,7 @@ void free_dhash_node( struct dhash_node *dhn )
 
         avl_remove(&dhash_tree, &dhn->dhash, -300195);
 
-        purge_dhash_iid(dhn);
+        free_dhash_iid_from_neighIIDrepositories(dhn);
 
         // It must be ensured that I am not reusing this IID for a while, so it must be invalidated
         // but the description and its dhash might become valid again, so I give it a unique and illegal value.

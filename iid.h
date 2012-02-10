@@ -76,7 +76,7 @@ void iid_purge_repos( struct iid_repos *rep, TIME_T timeout );
 
 void iid_free(struct iid_repos *rep, IID_T iid);
 
-void iid_free_neighIID4x_by_myIID4x( struct iid_repos *rep, IID_T myIID4x);
+void iid_free_neighIIDrepos_from_myIID4x( struct iid_repos *rep, IID_T myIID4x);
 
 IDM_T iid_set_neighIID4x(struct iid_repos *neigh_rep, IID_T neighIID4x, IID_T myIID4x);
 

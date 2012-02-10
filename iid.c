@@ -157,7 +157,7 @@ IID_NODE_T* iid_get_node_by_myIID4x(IID_T myIID4x)
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
 
-        assertion(-500328, (!dhn || dhn->myIID4orig == myIID4x));
+        assertion(-500328, IMPLIES(dhn, dhn->myIID4orig == myIID4x));
 
         if (dhn && !dhn->on) {
 
@@ -345,7 +345,7 @@ IDM_T iid_set_neighIID4x(struct iid_repos *rep, IID_T neighIID4x, IID_T myIID4x)
 
         IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
 
-        assertion(-500485, (dhn && dhn->on));
+        assertion(-501437, (dhn && dhn->on));
 
         if ( !iid_tables ) {
                 if (dhn->neigh && &dhn->neigh->neighIID4x_repos == rep) {
@@ -417,43 +417,45 @@ IDM_T iid_set_neighIID4x(struct iid_repos *rep, IID_T neighIID4x, IID_T myIID4x)
 }
 
 
-void iid_free_neighIID4x_by_myIID4x( struct iid_repos *rep, IID_T myIID4x)
+void iid_free_neighIIDrepos_from_myIID4x( struct iid_repos *neigh_rep, IID_T free_myIID4x)
 {
         TRACE_FUNCTION_CALL;
-        assertion(-500282, (rep != &my_iid_repos));
-        assertion(-500328, (myIID4x >= IID_MIN_USABLE));
-        assertion(-501419, (iid_tables ? rep->neighIID4neigh == IID_RSVD_UNUSED : rep->tot_used == IID_MIN_USABLE));
+        assertion(-500282, (neigh_rep != &my_iid_repos));
+        assertion(-500328, (free_myIID4x >= IID_MIN_USABLE));
+        assertion(-501419, (iid_tables ? neigh_rep->neighIID4neigh == IID_RSVD_UNUSED : neigh_rep->tot_used == IID_MIN_USABLE));
+
+        assertion(-501444, (((my_iid_repos.arr.node[free_myIID4x]))));
+        assertion(-501445, (!(my_iid_repos.arr.node[free_myIID4x]->on)));
+        assertion(-501446, (!(my_iid_repos.arr.node[free_myIID4x]->neigh)));
 
 
-        IID_NODE_T *dhn = my_iid_repos.arr.node[myIID4x];
-
-        assertion(-500485, (dhn && dhn->on));
-
-        if (dhn->neigh && &dhn->neigh->neighIID4x_repos == rep) {
+/*
+        if (free_dhn->neigh && &free_dhn->neigh->neighIID4x_repos == neigh_rep) {
 
                 assertion(-501420, 0); // would result in a  described neighbor with unknown neighIID4neigh
 
                 if (iid_tables) {
-                        rep->neighIID4neigh = IID_RSVD_UNUSED;
-                        rep->referred_by_neigh_timestamp_sec = 0;
+                        neigh_rep->neighIID4neigh = IID_RSVD_UNUSED;
+                        neigh_rep->referred_by_neigh_timestamp_sec = 0;
                         return;
                 }
         }
+*/
 
 
         IID_T p;
         uint16_t removed = 0;
 
-        for (p = IID_MIN_USABLE; p <= rep->max_used; p++) {
+        for (p = IID_MIN_USABLE; p <= neigh_rep->max_used; p++) {
 
-                if (rep->arr.ref[p].myIID4x == myIID4x) {
+                if (neigh_rep->arr.ref[p].myIID4x == free_myIID4x) {
 
                         if (removed++) {
                                 // there could indeed be several (if the neigh has timeouted this node and learned it again later)
-                                dbgf(DBGL_TEST, DBGT_INFO, "removed %d. stale rep->arr.sid[%d] = %d", removed, p, myIID4x);
+                                dbgf(DBGL_TEST, DBGT_INFO, "removed %d. stale rep->arr.sid[%d] = %d", removed, p, free_myIID4x);
                         }
 
-                        iid_free(rep, p);
+                        iid_free(neigh_rep, p);
                 }
         }
 }

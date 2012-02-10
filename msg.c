@@ -1808,7 +1808,7 @@ int32_t tx_frame_ogm_advs(struct tx_frame_iterator *it)
 //                uint16_t msgs_length = (oan->aggregated_msgs * sizeof (struct msg_ogm_iid_adv));
                 struct hdr_ogm_adv* hdr = ((struct hdr_ogm_adv*) tx_iterator_cache_hdr_ptr(it));
 
-                assertion(-500000, (iid_tables ? !!oan->ogm_iid_advs : !!oan->ogm_dhash_advs));
+                assertion(-501447, (iid_tables ? !!oan->ogm_iid_advs : !!oan->ogm_dhash_advs));
                 assertion(-501141, (oan->sqn == sqn));
                 assertion(-501143, (oan->ogm_dest_bytes <= (OGM_DEST_ARRAY_BIT_SIZE/8)));
                 assertion(-500859, (&(hdr[1]) == ((struct hdr_ogm_adv*) tx_iterator_cache_msg_ptr(it))));
