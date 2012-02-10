@@ -218,7 +218,7 @@ void dbg_traffic_statistics(struct dump_data *data, struct ctrl_node *cn, char* 
 
 
         for (t = 0; t < DUMP_TYPE_ARRSZ; t++) {
-                dbg_printf(cn, "%13s  %5d (%3d)  %5d (%3d)  %5d (%3d)  | %5d (%3d)  %5d (%3d)  %5d (%3d)\n",
+                dbg_printf(cn, "%14s  %5d (%3d)  %5d (%3d)  %5d (%3d)  | %5d (%3d)  %5d (%3d)  %5d (%3d)\n",
                         t == DUMP_TYPE_UDP_PAYLOAD ? "UDP_PAYLOAD" : (t == DUMP_TYPE_PACKET_HEADER ? "PACKET_HEADER" : "FRAME_HEADER"),
 
 
@@ -275,7 +275,7 @@ void dbg_traffic_statistics(struct dump_data *data, struct ctrl_node *cn, char* 
                         }
 
 
-                        dbg_printf(cn, "%13s  %5d (%3d)  %5d (%3d)  %5d (%3d)  | %5d (%3d)  %5d (%3d)  %5d (%3d)\n",
+                        dbg_printf(cn, "%14s  %5d (%3d)  %5d (%3d)  %5d (%3d)  | %5d (%3d)  %5d (%3d)  %5d (%3d)\n",
                                 tname,
 
                                 ((data->pre_frame[DUMP_DIRECTION_IN][t] + data->pre_frame[DUMP_DIRECTION_OUT][t]) >> IMPROVE_ROUNDOFF),
