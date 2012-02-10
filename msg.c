@@ -3636,9 +3636,6 @@ struct opt_type msg_options[]=
         {ODI, 0, ARG_UDPD_SIZE,            0,  5,0, A_PS1, A_ADM, A_DYI, A_CFA, A_ANY, &pref_udpd_size,   MIN_UDPD_SIZE,      MAX_UDPD_SIZE,     DEF_UDPD_SIZE,0,       0,
 			ARG_VALUE_FORM,	"set preferred udp-data size for send packets"}
         ,
-        {ODI, 0, ARG_IID_TABLES,              0,  5,0, A_PS1, A_ADM, A_DYI, A_CFA, A_ANY, &iid_tables,      MIN_IID_TABLES,        MAX_IID_TABLES,       DEF_IID_TABLES,         0,0,
-			ARG_VALUE_FORM,	"use individualIDentifiers (IIDs) instead of SHA2 hashes as originator references in OGMs"}
-        ,
         {ODI, 0, ARG_OGM_TX_ITERS,         0,  5,0, A_PS1, A_ADM, A_DYI, A_CFA, A_ANY, &ogm_adv_tx_iters,MIN_OGM_TX_ITERS,MAX_OGM_TX_ITERS,DEF_OGM_TX_ITERS,0,0,
 			ARG_VALUE_FORM,	"set maximum resend attempts for ogm aggregations"}
         ,
