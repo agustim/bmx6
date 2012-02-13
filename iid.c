@@ -558,7 +558,7 @@ static struct opt_type iid_options[]=
 //        ord parent long_name          shrt Attributes				*ival		min		max		default		*func,*syntax,*help
 
 	{ODI,0,ARG_IID_TABLES, 	        0, 5,0,A_PS1,A_ADM,A_DYI,A_CFA,A_ANY,	&iid_tables_conf,	MIN_IID_TABLES,    MAX_IID_TABLES,    DEF_IID_TABLES,0,  opt_iid_tables,
-                ARG_VALUE_FORM, "0: disable Distributed IID Tables (DIT), 1: enable DIT, 2: enable DIT with respect to capabilities of neighboring nodes"}
+                ARG_VALUE_FORM, "0: disable locally Distributed IID Tables (DIT), 1: enable DIT, 2: enable DIT with respect to capabilities of neighboring nodes"}
 
 };
 
