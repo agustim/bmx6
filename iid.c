@@ -479,16 +479,16 @@ void iid_tables_check_usage(void)
                 !(neigh_capabilities & MSG_DESCRIPTION_CAPABILITY_NO_IID_TABLES) : iid_tables_conf;
 
 
-        dbgf_track(DBGT_INFO, "(new) iid_tables=%d iid_tables_conf=%d iid_tables_neigh=%d",
+        dbgf_track(DBGT_INFO, "(new) iid_tables_self=%d iid_tables_conf=%d iid_tables_neigh=%d",
                 iid_tables_self, iid_tables_conf, iid_tables_neigh);
 
 
 
-        if (iid_tables_self == iid_tables_conf ? YES : NO)
+        if (iid_tables_self == (iid_tables_conf ? YES : NO))
                 return;
 
 
-        iid_tables_self = iid_tables_conf ? YES : NO;
+        iid_tables_self = (iid_tables_conf ? YES : NO);
 
         my_description_changed = YES;
 
