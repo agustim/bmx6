@@ -479,7 +479,7 @@ void iid_tables_check_usage(void)
                 !(neigh_capabilities & MSG_DESCRIPTION_CAPABILITY_NO_IID_TABLES) : iid_tables_conf;
 
 
-        dbgf_track(DBGT_INFO, "(new) iid_tables_self=%d iid_tables_conf=%d iid_tables_neigh=%d",
+        dbgf_sys(DBGT_INFO, "(new) iid_tables_self=%d iid_tables_conf=%d iid_tables_neigh=%d",
                 iid_tables_self, iid_tables_conf, iid_tables_neigh);
 
 
@@ -502,7 +502,7 @@ void iid_tables_check_usage(void)
                 if (iid_tables_self) {
 
                         assertion(-501423, (rep->arr_size == 0));
-                        assertion(-501424, (rep->neighIID4neigh >= IID_MIN_USABLE));
+                        ASSERTION(-501424, (rep->neighIID4neigh >= IID_MIN_USABLE));
                         assertion(-501425, (neigh->dhn->myIID4orig >= IID_MIN_USABLE));
 
                         IID_T neighIID4neigh = rep->neighIID4neigh;
@@ -527,13 +527,19 @@ void iid_tables_check_usage(void)
 
                                 if (ref->myIID4x == neigh->dhn->myIID4orig) {
 
-                                        if ((uint16_t) (((uint16_t) bmx_time_sec) - rep->referred_by_neigh_timestamp_sec) < IID_DHASH_VALIDITY_TO / 1000) {
-                                                assertion(-501422, (neighIID4neigh == IID_RSVD_UNUSED));
-                                                referred_by_neigh_timestamp_sec = ref->referred_by_neigh_timestamp_sec;
-                                                neighIID4neigh = neighIID4x;
+                                        if ((uint16_t) (((uint16_t) bmx_time_sec) - ref->referred_by_neigh_timestamp_sec) <= (IID_DHASH_PURGE_TO / 1000)) {
+
+                                                if (((uint16_t) (ref->referred_by_neigh_timestamp_sec - referred_by_neigh_timestamp_sec)) <= (IID_DHASH_PURGE_TO / 1000)) {
+                                                        //assertion(-501422, (neighIID4neigh == IID_RSVD_UNUSED));
+                                                        referred_by_neigh_timestamp_sec = ref->referred_by_neigh_timestamp_sec;
+                                                        neighIID4neigh = neighIID4x;
+                                                }
                                         }
                                 }
                         }
+
+                        dbgf_sys(DBGT_WARN, "");
+                        ASSERTION(-5001449, (neighIID4neigh >= IID_RSVD_UNUSED));
 
                         iid_purge_repos(rep, 0);
 
