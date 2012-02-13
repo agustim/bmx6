@@ -3433,8 +3433,11 @@ struct dhash_node * process_description(struct packet_buff *pb, struct descripti
         assertion(-500309, (on->dhn == avl_find_item(&dhash_tree, &on->dhn->dhash)));
         assertion(-500310, (on == avl_find_item(&orig_tree, &on->desc->globalId)));
 
-        if (on->desc)
-                cb_plugin_hooks(PLUGIN_CB_DESCRIPTION_CREATED, on);
+        //if (on->desc)
+        cb_plugin_hooks(PLUGIN_CB_DESCRIPTION_CREATED, on);
+
+        if (on->dhn->neigh)
+                my_neighbors_changed = YES;
 
 
         return on->dhn;
