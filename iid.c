@@ -484,11 +484,11 @@ void iid_tables_check_usage(void)
 
 
 
-        if (iid_tables_self == iid_tables_conf)
+        if (iid_tables_self == iid_tables_conf ? YES : NO)
                 return;
 
 
-        iid_tables_self = iid_tables_conf;
+        iid_tables_self = iid_tables_conf ? YES : NO;
 
         my_description_changed = YES;
 
