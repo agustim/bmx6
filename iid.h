@@ -38,10 +38,16 @@
 
 
 #define MIN_IID_TABLES 0
-#define MAX_IID_TABLES 1
-#define DEF_IID_TABLES 1
+#define TYP_IID_TABLES_OFF 0
+#define TYP_IID_TABLES_ON 1
+#define TYP_IID_TABLES_ADAPTIVE 2
+#define MAX_IID_TABLES 2
+#define DEF_IID_TABLES 2
 #define ARG_IID_TABLES "iidTables"
-extern int32_t iid_tables;
+
+extern int32_t iid_tables_self;
+extern int32_t iid_tables_neigh;
+
 
 
 struct iid_ref {
@@ -89,5 +95,7 @@ IID_NODE_T* iid_get_node_by_neighIID4x(IID_NEIGH_T *nn, IID_T neighIID4x, IDM_T 
 IID_NODE_T* iid_get_node_by_myIID4x( IID_T myIID4x );
 
 void init_iid( void );
+
+void iid_tables_check_usage(void);
 
 #endif

@@ -209,7 +209,9 @@ task_next_again:
 
 			list_del_next( &task_list, prev_pos );
 			debugFree( tn, -300081 ); // remove before executing because otherwise we get memory leak if taks causes an assertion
-			
+
+                        pre_tasks();
+
 			(*(task)) (data);
 
                         CHECK_INTEGRITY();
@@ -358,7 +360,9 @@ loop4Event:
 				}
 
 				ioctl(pb.i.iif->rx_mcast_sock, SIOCGSTAMP, &(pb.i.tv_stamp)) ;
-				
+
+                                pre_tasks();
+
 				rx_packet( &pb );
 				
 				if ( --selected == 0 )
@@ -384,7 +388,9 @@ loop4Event:
 				}
 				
 				ioctl(pb.i.iif->rx_fullbrc_sock, SIOCGSTAMP, &(pb.i.tv_stamp)) ;
-				
+
+                                pre_tasks();
+
 				rx_packet( &pb );
 				
 				if ( --selected == 0 )
@@ -440,8 +446,10 @@ loop4Event:
 					ioctl( pb.i.iif->unicast_sock, SIOCGSTAMP, &(pb.i.tv_stamp) );
 				else
 					timercpy( tv_stamp, &(pb.i.tv_stamp) );
-				
-				rx_packet( &pb );
+
+                                pre_tasks();
+
+                                rx_packet(&pb);
 				
 				if ( --selected == 0)
 					goto loop4Event;
@@ -461,7 +469,9 @@ loop4ActivePlugins:
 			if ( FD_ISSET( cdn->fd, &tmp_wait_set ) ) {
 				
 				FD_CLR( cdn->fd, &tmp_wait_set );
-				
+
+                                pre_tasks();
+
 				(*(cdn->cb_fd_handler)) (cdn->fd); 
 				
 				// list might have changed, due to unregistered handlers, reiterate NOW
@@ -499,8 +509,10 @@ loop4ActiveClients:
 				//omit debugging here since event could be a closed -d4 ctrl socket 
 				//which should be removed before debugging
 				//dbgf_all( DBGT_INFO, "got msg from control client");
-					
-				handle_ctrl_node( client );
+
+                                pre_tasks();
+
+                                handle_ctrl_node(client);
 				
 				--selected;
 				

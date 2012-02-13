@@ -79,6 +79,8 @@ uint32_t s_curr_avg_cpu_load = 0;
 
 IDM_T my_description_changed = YES;
 
+IDM_T my_neighbors_changed = YES;
+
 struct orig_node *self = NULL;
 
 LOCAL_ID_T my_local_id = LOCAL_ID_INVALID;
@@ -352,6 +354,8 @@ void free_neigh_node(struct neigh_node *neigh)
         neigh->local = NULL;
 
         debugFree(neigh, -300129);
+
+        my_neighbors_changed = YES;
 }
 
 
@@ -382,6 +386,8 @@ struct neigh_node * update_local_neigh(struct packet_buff *pb, struct dhash_node
                 local->neigh = dhn->neigh;
                 local->neigh->local = local;
 
+                my_neighbors_changed = YES;
+
                 goto update_local_neigh_success;
 
 
@@ -404,6 +410,8 @@ struct neigh_node * update_local_neigh(struct packet_buff *pb, struct dhash_node
                 dbgf_track(DBGT_INFO, "NEW link=%s <-> LOCAL=%d <-> NEIGHIID4me=%d <-> dhn->id=%s",
                         pb->i.llip_str, local->local_id, local->neigh->neighIID4me, 
                         globalIdAsString(&dhn->on->desc->globalId));
+
+                my_neighbors_changed = YES;
 
                 goto update_local_neigh_success;
 
@@ -2214,7 +2222,19 @@ void init_bmx(void)
 }
 
 
+void pre_tasks(void)
+{
 
+        if (my_description_changed)
+                update_my_description_adv();
+
+        if (my_neighbors_changed) {
+                my_neighbors_changed = NO;
+                iid_tables_check_usage();
+                cb_plugin_hooks(PLUGIN_CB_NEIGHBORS_CHANGED, NULL);
+        }
+
+}
 
 STATIC_FUNC
 void bmx(void)
@@ -2245,13 +2265,16 @@ void bmx(void)
 		if ( wait )
 			wait4Event( MIN( wait, MAX_SELECT_TIMEOUT_MS ) );
 
+/*
                 if (my_description_changed)
                         update_my_description_adv();
+*/
+
 
 		// The regular tasks...
 		if ( U32_LT( frequent_timeout + 1000,  bmx_time ) ) {
 
-			// check for changed interface konfigurations...
+                        // check for changed interface konfigurations...
                         for (an = NULL; (dev = avl_iterate_item(&dev_name_tree, &an));) {
 
 				if ( dev->active )

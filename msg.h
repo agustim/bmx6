@@ -596,6 +596,9 @@ struct description { // 48 bytes
 } __attribute__((packed));
 
 
+#define MSG_DESCRIPTION_CAPABILITY_NO_IID_TABLES 0x01
+
+
 #define MSG_DESCRIPTION0_ADV_UNHASHED_SIZE  2
 #define MSG_DESCRIPTION0_ADV_HASHED_SIZE   (sizeof( GLOBAL_ID_T) + (4 * sizeof(uint32_t)))
 #define MSG_DESCRIPTION0_ADV_SIZE  (MSG_DESCRIPTION0_ADV_UNHASHED_SIZE + MSG_DESCRIPTION0_ADV_HASHED_SIZE)
@@ -639,28 +642,15 @@ FIELD_FORMAT_END}
 struct msg_ogm_dhash_adv // 24 bytes
 {
         struct description_hash dhash; // 20 bytes
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-        unsigned int metric_mant : OGM_MANTISSA_BIT_SIZE;
-        unsigned int metric_exp :  OGM_EXPONENT_BIT_SIZE;
-        unsigned int reserved : (16-(OGM_EXPONENT_BIT_SIZE+OGM_MANTISSA_BIT_SIZE));
-//        unsigned int isTransmittersOgm : 1;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-//        unsigned int isTransmittersOgm : 1;
-        unsigned int reserved : (16-(OGM_EXPONENT_BIT_SIZE+OGM_MANTISSA_BIT_SIZE));
-        unsigned int metric_exp :  OGM_EXPONENT_BIT_SIZE;
-        unsigned int metric_mant : OGM_MANTISSA_BIT_SIZE;
-#else
-# error "Please fix <bits/endian.h>"
-#endif
-//        uint8_t metric_exp;
-//        uint8_t metric_mant;
-        OGM_SQN_T ogm_sqn; // 2 bytes
+        uint8_t metric_mant;           //  1 byte
+        uint8_t metric_exp;            //  1 byte
+        OGM_SQN_T ogm_sqn;             //  2 bytes
 
 } __attribute__((packed));
 
 struct msg_ogm_iid_adv // 4 bytes
 {
-	OGM_MIX_T mix; //uint16_t mix of transmitterIIDoffset, metric_mant, metric_exp
+	OGM_MIX_T mix; //uint16_t mix of transmitterIIDoffset (6 bits), metric_mant (5 bits), metric_exp (5 bits)
 
 	union {
 		OGM_SQN_T ogm_sqn;

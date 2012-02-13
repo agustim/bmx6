@@ -634,7 +634,7 @@ void create_ogm(struct orig_node *on, IID_T prev_ogm_iid, void *ogm_adv)
 
         assertion(-500890, ((on->dhn->myIID4orig - prev_ogm_iid) <= OGM_IIDOFFST_MASK));
 
-        if (iid_tables) {
+        if (iid_tables_neigh) {
                 struct msg_ogm_iid_adv *ogm = ogm_adv;
 
                 OGM_MIX_T mix =
@@ -650,7 +650,7 @@ void create_ogm(struct orig_node *on, IID_T prev_ogm_iid, void *ogm_adv)
 
                 ogm->dhash = on->dhn->dhash;
 //                ogm->isTransmittersOgm = (on == self);
-                ogm->reserved = 0;
+//                ogm->reserved = 0;
                 ogm->metric_exp = fm.val.f.exp_fm16;
                 ogm->metric_mant = fm.val.f.mantissa_fm16;
                 ogm->ogm_sqn = htons(on->ogmSqn_next);
@@ -680,8 +680,9 @@ void create_ogm_aggregation(void)
         uint32_t max_msg_space = (pref_udpd_size -
                 (sizeof (struct packet_header) + sizeof (struct frame_header_long) +
                 sizeof (struct hdr_ogm_adv) + (OGM_DEST_ARRAY_BIT_SIZE / 8)));
+
         uint16_t max_msgs = (max_msg_space /
-                (iid_tables ? sizeof (struct msg_ogm_iid_adv) : sizeof (struct msg_ogm_dhash_adv)));
+                (iid_tables_neigh ? sizeof (struct msg_ogm_iid_adv) : sizeof (struct msg_ogm_dhash_adv)));
 
         struct msg_ogm_iid_adv* msgs = debugMalloc(max_msg_space, -300177);
 
@@ -714,7 +715,7 @@ void create_ogm_aggregation(void)
                                 continue;
                         }
 
-                        if ( iid_tables ) {
+                        if ( iid_tables_neigh ) {
 
                                 if (((IID_T) (dhn->myIID4orig - prev_ogm_iid) >= OGM_IID_RSVD_JUMP)) {
 
@@ -760,14 +761,14 @@ void create_ogm_aggregation(void)
         struct ogm_aggreg_node *oan = debugMalloc(sizeof (struct ogm_aggreg_node), -300179);
         memset(oan, 0, sizeof (struct ogm_aggreg_node));
 
-        if (iid_tables)
+        if (iid_tables_neigh) {
                 oan->ogm_iid_advs = msgs;
-        else
+                oan->ogm_msgs_bytes = (ogm_msg + ogm_iid_jumps) * sizeof (struct msg_ogm_iid_adv);
+        } else {
                 oan->ogm_dhash_advs = (struct msg_ogm_dhash_adv*) msgs;
+                oan->ogm_msgs_bytes = (ogm_msg * sizeof (struct msg_ogm_dhash_adv));
+        }
 
-        oan->ogm_msgs_bytes = (ogm_msg + ogm_iid_jumps) *
-                (iid_tables ? sizeof (struct msg_ogm_iid_adv) : sizeof (struct msg_ogm_dhash_adv));
-//        oan->aggregated_msgs = ogm_msg + ogm_iid_jumps;
         oan->tx_attempt = 0;
         oan->sqn = (++ogm_aggreg_sqn_max);
         uint16_t destinations = 0;
@@ -792,7 +793,7 @@ void create_ogm_aggregation(void)
         list_add_tail(&ogm_aggreg_list, &oan->list);
 
         dbgf_all( DBGT_INFO, "ogm_use_iid=%d aggregation_sqn=%d ogms=%d jumps=%d destinations=%d",
-                iid_tables, oan->sqn, ogm_msg, ogm_iid_jumps, destinations);
+                iid_tables_neigh, oan->sqn, ogm_msg, ogm_iid_jumps, destinations);
 
         return;
 }
@@ -978,7 +979,7 @@ void schedule_or_purge_ogm_aggregations(IDM_T purge_all)
         {
                 struct ogm_aggreg_node *oan = list_entry(lpos, struct ogm_aggreg_node, list);
 
-                if (purge_all || oan->tx_attempt >= ogm_adv_tx_iters || XOR(oan->ogm_iid_advs, iid_tables)) {
+                if (purge_all || oan->tx_attempt >= ogm_adv_tx_iters || XOR(oan->ogm_iid_advs, iid_tables_neigh)) {
 
                         list_del_next(&ogm_aggreg_list, lprev);
                         debugFree(oan->ogm_dhash_advs, -300443);
@@ -998,7 +999,7 @@ void schedule_or_purge_ogm_aggregations(IDM_T purge_all)
 
                         for (d = 0; (lndev_arr[d]); d++) {
 
-                                if (iid_tables)
+                                if (iid_tables_neigh)
                                         schedule_tx_task((lndev_arr[d]), FRAME_TYPE_OGM_IID_ADV, oan->ogm_msgs_bytes + oan->ogm_dest_bytes, 0, oan->sqn, 0, NULL);
                                 else
                                         schedule_tx_task((lndev_arr[d]), FRAME_TYPE_OGM_DHASH_ADV, oan->ogm_msgs_bytes + oan->ogm_dest_bytes, 0, oan->sqn, 0, NULL);
@@ -1100,7 +1101,7 @@ int32_t tx_msg_dhash_or_description_request(struct tx_frame_iterator *it)
         dbgf_track(DBGT_INFO, "%s dev=%s to local_id=%X dev_idx=0x%X iterations=%d time=%d requesting neighIID4x=%d dhash=%s iid_tables=%d %s",
                 handl->name, ttn->task.dev->label_cfg.str, ntohl(ttn->task.link->key.local_id),
                 ttn->task.link->key.dev_idx, ttn->tx_iterations, ttn->considered_ts,
-                neighIID4x, memAsHexString(&ttn->task.dhash, sizeof (ttn->task.dhash)), iid_tables,
+                neighIID4x, memAsHexString(&ttn->task.dhash, sizeof (ttn->task.dhash)), iid_tables_self,
                 dhn ? "ALREADY RESOLVED (req cancelled)" : ttn->task.link->local->neigh ? "ABOUT NB HIMSELF" : "ABOUT SOMEBODY");
 
         assertion(-501426, (it->frame_type == ttn->task.type));
@@ -1792,23 +1793,24 @@ int32_t tx_frame_ogm_advs(struct tx_frame_iterator *it)
         AGGREG_SQN_T sqn = ttn->task.u16; // because AGGREG_SQN_T is just 8 bit!
         struct ogm_aggreg_node *oan = list_find_next(&ogm_aggreg_list, &sqn, NULL);
 
-        if (!oan || XOR(iid_tables, oan->ogm_iid_advs)) {
+        if (!oan || XOR(iid_tables_neigh, oan->ogm_iid_advs)) {
 
                 // this happens when the to-be-send ogm aggregation has already been purged or
                 // ogm_dhash_advs should be used but ogm_iid_advs were prepared for this oan
-                dbgf_sys(DBGT_WARN, "aggregation_sqn %d does not exist anymore in ogm_aggreg_list", sqn);
+                dbgf_sys(DBGT_WARN, "aggregation_sqn %d NOT in ogm_aggreg_list or iid_tables_neigh=%d != ogm_iid_advs=%d",
+                        sqn, iid_tables_self, !!oan->ogm_iid_advs);
                 ttn->tx_iterations = 0;
                 return TLV_TX_DATA_DONE;
 
         } else {
 
                 dbgf_all(DBGT_INFO, "aggregation_sqn=%d iid_tables=%d frame_msgs_length=%d dest_bytes=%d attempt=%d",
-                        oan->sqn, iid_tables, ttn->frame_msgs_length, oan->ogm_dest_bytes, oan->tx_attempt);
+                        oan->sqn, iid_tables_neigh, ttn->frame_msgs_length, oan->ogm_dest_bytes, oan->tx_attempt);
 
 //                uint16_t msgs_length = (oan->aggregated_msgs * sizeof (struct msg_ogm_iid_adv));
                 struct hdr_ogm_adv* hdr = ((struct hdr_ogm_adv*) tx_iterator_cache_hdr_ptr(it));
 
-                assertion(-501447, (iid_tables ? !!oan->ogm_iid_advs : !!oan->ogm_dhash_advs));
+                assertion(-501447, (iid_tables_neigh ? !!oan->ogm_iid_advs : !!oan->ogm_dhash_advs));
                 assertion(-501141, (oan->sqn == sqn));
                 assertion(-501143, (oan->ogm_dest_bytes <= (OGM_DEST_ARRAY_BIT_SIZE/8)));
                 assertion(-500859, (&(hdr[1]) == ((struct hdr_ogm_adv*) tx_iterator_cache_msg_ptr(it))));
@@ -1822,7 +1824,7 @@ int32_t tx_frame_ogm_advs(struct tx_frame_iterator *it)
                         memcpy(tx_iterator_cache_msg_ptr(it), oan->ogm_dest_field, oan->ogm_dest_bytes);
 
                 memcpy(tx_iterator_cache_msg_ptr(it) + oan->ogm_dest_bytes,
-                        iid_tables ? (void*)oan->ogm_iid_advs : (void*)oan->ogm_dhash_advs,
+                        iid_tables_neigh ? (void*)oan->ogm_iid_advs : (void*)oan->ogm_dhash_advs,
                         ttn->frame_msgs_length - oan->ogm_dest_bytes);
 
                 return ttn->frame_msgs_length;
@@ -1937,7 +1939,7 @@ int32_t rx_frame_ogm_advs(struct rx_frame_iterator *it)
 
         assertion(-501432, (neigh && neigh->dhn));
 
-        if (!iid_tables && is_ogm_iid_adv)
+        if (!iid_tables_self && is_ogm_iid_adv)
                 return it->frame_msgs_length;
 
         if (ogm_dst_field_size > (OGM_DEST_ARRAY_BIT_SIZE / 8) ||
@@ -2378,9 +2380,9 @@ int32_t rx_msg_dhash_adv( struct rx_frame_iterator *it)
 
 
                 if (!dhn) {
-                        if (iid_tables /*&& is_transmitter_adv*/)
+                        if (iid_tables_self /*&& is_transmitter_adv*/)
                                 schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DESC_IID_REQ, SCHEDULE_MIN_MSG_SIZE, 0, neighIID4x, 0, NULL);
-                        else if (!iid_tables)
+                        else /*if (!iid_tables_self)*/
                                 schedule_tx_task(pb->i.link->local->best_tp_lndev, FRAME_TYPE_DESC_DHASH_REQ, SCHEDULE_MIN_MSG_SIZE, 0, 0, 0, &adv->dhash);
                 }
 
@@ -3490,6 +3492,7 @@ void update_my_description_adv(void)
         dsc->txInterval = htons(my_tx_interval);
 
         dsc->codeVersion = htons(CODE_VERSION);
+        dsc->capabilities = htons((iid_tables_self ? 0 : MSG_DESCRIPTION_CAPABILITY_NO_IID_TABLES) | 0);
         dsc->descSqn = htons(++(self->descSqn));
         dsc->reservedTtl = my_ttl;
 

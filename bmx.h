@@ -1054,6 +1054,8 @@ void update_neigh_dhash(struct orig_node *on, struct description_hash *dhash);
 
 LOCAL_ID_T new_local_id(struct dev_node *dev);
 
+void pre_tasks(void);
+
 void rx_packet( struct packet_buff *pb );
 
 
