@@ -2253,7 +2253,7 @@ void bmx(void)
         for (an = NULL; (dev = avl_iterate_item(&dev_ip_tree, &an));) {
 
                 schedule_tx_task(&dev->dummy_lndev, FRAME_TYPE_DEV_ADV, SCHEDULE_UNKNOWN_MSGS_SIZE, 0, 0, 0, NULL);
-                schedule_tx_task(&dev->dummy_lndev, FRAME_TYPE_DESC_ADV, ntohs(self->desc->extensionLen) + sizeof ( struct msg_description_adv), myIID4me, 0, 0, NULL);
+                schedule_tx_task(&dev->dummy_lndev, FRAME_TYPE_DESC_IID_ADV, ntohs(self->desc->extensionLen) + sizeof ( struct msg_description_adv), myIID4me, 0, 0, NULL);
         }
 
         initializing = NO;
