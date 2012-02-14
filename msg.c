@@ -617,6 +617,7 @@ void create_ogm(struct orig_node *on, IID_T prev_ogm_iid, void *ogm_adv)
         assertion(-501064, (on->ogmMetric_next <= UMETRIC_MAX));
         assertion(-501066, (on->ogmMetric_next > UMETRIC_INVALID));
         assertion(-501063, ((((OGM_SQN_MASK) & (on->ogmSqn_next - on->ogmSqn_rangeMin)) < on->ogmSqn_rangeSize)));
+        assertion(-500890, IMPLIES(iid_tables_neigh, (on->dhn->myIID4orig - prev_ogm_iid) <= OGM_IIDOFFST_MASK));
 
         FMETRIC_U16_T fm = umetric_to_fmetric(on->ogmMetric_next);
 
@@ -631,8 +632,6 @@ void create_ogm(struct orig_node *on, IID_T prev_ogm_iid, void *ogm_adv)
         set_ogmSqn_toBeSend_and_aggregated(on, on->ogmMetric_next, on->ogmSqn_next, on->ogmSqn_next);
 
         on->dhn->referred_by_me_timestamp = bmx_time;
-
-        assertion(-500890, ((on->dhn->myIID4orig - prev_ogm_iid) <= OGM_IIDOFFST_MASK));
 
         if (iid_tables_neigh) {
                 struct msg_ogm_iid_adv *ogm = ogm_adv;
