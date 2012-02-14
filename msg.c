@@ -1114,6 +1114,7 @@ int32_t tx_msg_dhash_or_description_request(struct tx_frame_iterator *it)
         assertion(-500855, (tx_iterator_cache_data_space_pref(it) >= handl->min_msg_size));
         assertion(-500856, (ttn->task.link));
         assertion(-500870, (ttn->tx_iterations > 0 && ttn->considered_ts != bmx_time));
+        assertion(-501450, (IMPLIES(dhn, (dhn->on))));
         assertion(-500858, (IMPLIES(dhn, (dhn->on && dhn->on->desc))));
 
         if (dhn) {
